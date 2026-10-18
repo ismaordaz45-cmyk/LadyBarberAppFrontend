@@ -10,7 +10,7 @@
         "./assets/*"
       ]
     },
-    "types": ["jest"]
+    "types": ["jest", "expo/types"]
   },
   "include": [
     "**/*.ts",

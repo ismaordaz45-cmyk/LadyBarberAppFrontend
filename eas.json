@@ -1,0 +1,24 @@
+{
+  "cli": {
+    "version": "25.3.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "qa": {
+      "distribution": "internal",
+      "environment": "preview",
+      "credentialsSource": "remote",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "environment": "production",
+      "credentialsSource": "remote",
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  }
+}

@@ -4,6 +4,84 @@ import Constants from 'expo-constants';
 // IP local de respaldo de tu máquina en la red Wi-Fi
 const DEV_MACHINE_IP = '192.168.0.111';
 
+type ApiBaseUrlOptions = {
+  configuredUrl?: string;
+  isDev: boolean;
+  platform: string;
+  hostUri?: string | null;
+  devMachineIp?: string;
+};
+
+/**
+ * Valida y normaliza una URL base sin permitir credenciales, query o fragmentos.
+ * En builds firmados se exige HTTPS para evitar trafico de autenticacion en claro.
+ */
+export const normalizeApiBaseUrl = (
+  rawUrl: string,
+  requireHttps = false
+): string => {
+  const candidate = rawUrl.trim();
+  if (!candidate) {
+    throw new Error('EXPO_PUBLIC_API_URL no puede estar vacia.');
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    throw new Error('EXPO_PUBLIC_API_URL debe ser una URL absoluta valida.');
+  }
+
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new Error('EXPO_PUBLIC_API_URL debe utilizar http o https.');
+  }
+  if (requireHttps && parsed.protocol !== 'https:') {
+    throw new Error('EXPO_PUBLIC_API_URL debe utilizar HTTPS en builds firmados.');
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error('EXPO_PUBLIC_API_URL no debe contener credenciales.');
+  }
+  if (parsed.search || parsed.hash) {
+    throw new Error('EXPO_PUBLIC_API_URL no debe contener query ni fragmentos.');
+  }
+
+  const pathname = parsed.pathname.replace(/\/+$/, '');
+  if (pathname !== '/api') {
+    throw new Error('EXPO_PUBLIC_API_URL debe terminar exactamente en /api.');
+  }
+  return `${parsed.origin}${pathname}`;
+};
+
+/** Resuelve la URL del API con entradas explicitas para facilitar su prueba. */
+export const resolveApiBaseUrl = ({
+  configuredUrl,
+  isDev,
+  platform,
+  hostUri,
+  devMachineIp = DEV_MACHINE_IP,
+}: ApiBaseUrlOptions): string => {
+  if (configuredUrl?.trim()) {
+    return normalizeApiBaseUrl(configuredUrl, !isDev);
+  }
+
+  if (!isDev) {
+    throw new Error(
+      'Falta EXPO_PUBLIC_API_URL para conectar un build firmado con el backend.'
+    );
+  }
+
+  if (platform === 'web') {
+    return 'http://localhost:3000/api';
+  }
+
+  const host = hostUri?.split(':')[0].trim();
+  if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    return `http://${host}:3000/api`;
+  }
+
+  return `http://${devMachineIp}:3000/api`;
+};
+
 /**
  * Resuelve la URL base del API en tiempo de ejecución.
  * Se llama en cada petición para garantizar que siempre usa la IP
@@ -11,23 +89,12 @@ const DEV_MACHINE_IP = '192.168.0.111';
  * de que Metro asignara la dirección.
  */
 export const getApiBaseUrl = (): string => {
-  if (__DEV__) {
-    if (Platform.OS === 'web') {
-      return 'http://localhost:3000/api';
-    }
-
-    // hostUri está disponible en runtime (Expo Go / dev client)
-    const hostUri = Constants.expoConfig?.hostUri;
-    if (hostUri) {
-      const ip = hostUri.split(':')[0].trim();
-      if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
-        return `http://${ip}:3000/api`;
-      }
-    }
-
-    return `http://${DEV_MACHINE_IP}:3000/api`;
-  }
-  return 'https://salonladybarberbackend.onrender.com/api';
+  return resolveApiBaseUrl({
+    configuredUrl: process.env.EXPO_PUBLIC_API_URL,
+    isDev: __DEV__,
+    platform: Platform.OS,
+    hostUri: Constants.expoConfig?.hostUri,
+  });
 };
 
 /**
@@ -79,7 +146,7 @@ export const apiClient = async <T>(
       throw err;
     }
     const netError = new Error(
-      `No se pudo conectar con el servidor (${url}). Verifica que el backend esté activo y en la misma red Wi-Fi.`
+      `No se pudo conectar con el servidor (${url}). Verifica la URL configurada y la disponibilidad del backend.`
     );
     (netError as any).originalError = err;
     throw netError;

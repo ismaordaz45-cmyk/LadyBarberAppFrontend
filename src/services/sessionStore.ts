@@ -41,6 +41,7 @@ class SessionStore {
     this._userRol = null;
   }
 
+
   get token(): string | null { return this._token; }
   get userId(): number | null { return this._userId; }
   get userNombre(): string | null { return this._userNombre; }

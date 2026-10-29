@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { sessionStore } from './sessionStore';
 
 // IP local de respaldo de tu máquina en la red Wi-Fi
 const DEV_MACHINE_IP = '192.168.0.111';
@@ -115,6 +116,7 @@ export const apiClient = async <T>(
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}${endpoint}`;
 
+
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
@@ -161,8 +163,6 @@ export const apiClientAuth = async <T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> => {
-  // Import lazy para evitar circular dependency
-  const { sessionStore } = await import('./sessionStore');
   const token = sessionStore.token;
 
   const baseUrl = getApiBaseUrl();
@@ -177,15 +177,33 @@ export const apiClientAuth = async <T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, { ...options, headers });
-  const data = await response.json();
+  try {
+    const response = await fetch(url, { ...options, headers });
+    let data: any = {};
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
 
-  if (!response.ok) {
-    const error = new Error(data.message || data.error || 'Error en la petición a la API');
-    (error as any).status = response.status;
-    (error as any).data = data;
-    throw error;
+    if (!response.ok) {
+      const error = new Error(
+        data.message || data.error || 'Error en la petición a la API'
+      );
+      (error as any).status = response.status;
+      (error as any).data = data;
+      throw error;
+    }
+
+    return data as T;
+  } catch (err: any) {
+    if (err.status) {
+      throw err;
+    }
+    const netError = new Error(
+      `No se pudo conectar con el servidor (${url}). Verifica la URL configurada y la disponibilidad del backend.`
+    );
+    (netError as any).originalError = err;
+    throw netError;
   }
-
-  return data;
 };

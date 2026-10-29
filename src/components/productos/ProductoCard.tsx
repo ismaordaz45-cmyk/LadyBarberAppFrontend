@@ -9,14 +9,24 @@ interface ProductoCardProps {
 }
 
 export const ProductoCard: React.FC<ProductoCardProps> = ({ item, onAgregar }) => {
+  const [imageFailed, setImageFailed] = React.useState(false);
+  const hasRemoteImage = /^https?:\/\/\S+$/i.test(item.imagenUrl || '');
+  const imageSource = hasRemoteImage && !imageFailed
+    ? { uri: item.imagenUrl }
+    : require('../../../assets/images/logo-itza.png');
+  const safePrice = Number.isFinite(item.precioMXN) && item.precioMXN >= 0
+    ? item.precioMXN
+    : 0;
+
   return (
     <View style={styles.card}>
       {/* Imagen Superior con Badge */}
       <View style={styles.imageWrapper}>
         <Image
-          source={{ uri: item.imagenUrl }}
+          source={imageSource}
           style={styles.image}
           resizeMode="cover"
+          onError={() => setImageFailed(true)}
         />
 
         {item.badge && (
@@ -53,7 +63,7 @@ export const ProductoCard: React.FC<ProductoCardProps> = ({ item, onAgregar }) =
           <View>
             <Text style={styles.priceLabel}>Precio</Text>
             <View style={styles.priceRow}>
-              <Text style={styles.priceVal}>${item.precioMXN}</Text>
+              <Text style={styles.priceVal}>${safePrice.toFixed(2)}</Text>
               <Text style={styles.currency}>MXN</Text>
             </View>
           </View>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AuthRepository } from '../repositories/authRepository';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -13,8 +13,13 @@ export const useRecuperarPasswordViewModel = () => {
   const [error, setError] = useState<string | null>(null);
   const [enviado, setEnviado] = useState(false);
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+  const requestInFlight = useRef(false);
 
   const handleSolicitarRecuperacion = async (): Promise<boolean> => {
+    if (requestInFlight.current) {
+      return false;
+    }
+
     const correoLimpio = correo.trim().toLowerCase();
 
     if (!correoLimpio) {
@@ -27,16 +32,19 @@ export const useRecuperarPasswordViewModel = () => {
       return false;
     }
 
+    requestInFlight.current = true;
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await AuthRepository.solicitarRecuperacion(correoLimpio);
+
+      if (typeof response?.message !== 'string' || !response.message.trim()) {
+        throw new Error('Respuesta de recuperación inválida.');
+      }
+
       setEnviado(true);
-      setMensajeExito(
-        response.message ||
-          'Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.'
-      );
+      setMensajeExito(response.message);
       return true;
     } catch (err: any) {
       const msg =
@@ -47,6 +55,7 @@ export const useRecuperarPasswordViewModel = () => {
       setError(msg);
       return false;
     } finally {
+      requestInFlight.current = false;
       setIsLoading(false);
     }
   };

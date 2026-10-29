@@ -11,6 +11,7 @@ import { RestablecerPasswordForm } from '../components/autenticacion/Restablecer
 
 export default function RestablecerPasswordScreen() {
   const router = useRouter();
+
   const params = useLocalSearchParams<{ token?: string }>();
 
   return (

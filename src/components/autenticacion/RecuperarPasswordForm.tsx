@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -57,6 +57,13 @@ export const RecuperarPasswordForm: React.FC<RecuperarPasswordFormProps> = ({
   const [overlayHeadline, setOverlayHeadline] = useState('Enviando instrucciones...');
   const [overlayMessage, setOverlayMessage] = useState('Conectando con el servidor de correo...');
   const [overlaySuccess, setOverlaySuccess] = useState(false);
+  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (navigationTimeoutRef.current !== null) {
+      clearTimeout(navigationTimeoutRef.current);
+    }
+  }, []);
 
   const onSubmit = async () => {
     if (!correo.trim()) {
@@ -75,7 +82,8 @@ export const RecuperarPasswordForm: React.FC<RecuperarPasswordFormProps> = ({
       setOverlayMessage('Instrucciones enviadas exitosamente.');
       setOverlaySuccess(true);
 
-      setTimeout(() => {
+      navigationTimeoutRef.current = setTimeout(() => {
+        navigationTimeoutRef.current = null;
         setShowOverlay(false);
         if (onSuccess) {
           onSuccess();

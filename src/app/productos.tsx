@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Image,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -21,6 +22,8 @@ import { CategoriaProducto } from '../models/Producto';
 export default function ProductosScreen() {
   const router = useRouter();
   const {
+    isLoading,
+    error,
     categoriaActiva,
     setCategoriaActiva,
     busqueda,
@@ -75,6 +78,20 @@ export default function ProductosScreen() {
         <View style={styles.toastNotification}>
           <Feather name="check-circle" size={15} color="#16A34A" />
           <Text style={styles.toastText}>{mensajeFeedback}</Text>
+        </View>
+      )}
+
+      {isLoading && (
+        <View style={styles.statusContainer}>
+          <ActivityIndicator size="large" color="#1E293B" />
+          <Text style={styles.statusText}>Cargando productos...</Text>
+        </View>
+      )}
+
+      {error && !isLoading && (
+        <View style={styles.errorContainer}>
+          <Feather name="alert-circle" size={18} color="#DC2626" />
+          <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
 
@@ -280,6 +297,33 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '600',
     color: '#166534',
+  },
+  statusContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 24,
+  },
+  statusText: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 20,
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#B91C1C',
   },
   scrollContainer: {
     flex: 1,

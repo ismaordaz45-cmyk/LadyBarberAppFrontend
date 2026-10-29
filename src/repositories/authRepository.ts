@@ -7,6 +7,7 @@ import {
   RegistroResponse,
 } from '../models/Auth';
 
+
 /**
  * Repositorio de Autenticación para la aplicación móvil.
  * Encapsula el acceso a la API REST para el módulo de Auth.

@@ -37,6 +37,9 @@ const formatFechaCita = (fechaISO: string, horaISO: string): string => {
     const dia = fecha.getDate();
     const mes = meses[fecha.getMonth()];
     const hora = new Date(horaISO);
+    if (!Number.isFinite(fecha.getTime()) || !Number.isFinite(hora.getTime())) {
+      return fechaISO;
+    }
     const horas = hora.getHours();
     const minutos = String(hora.getMinutes()).padStart(2, '0');
     const ampm = horas >= 12 ? 'PM' : 'AM';
@@ -67,7 +70,6 @@ export default function HomeScreen() {
     isLoading,
     error,
     userNombre,
-    serviciosPopulares,
     proximaCita,
     stats,
   } = useHomeViewModel();
@@ -103,6 +105,13 @@ export default function HomeScreen() {
           style={styles.container}
           showsVerticalScrollIndicator={false}
         >
+
+          {error && (
+            <View style={styles.errorBanner}>
+              <Feather name="alert-circle" size={18} color={C.red} />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
 
           {/* SECCIÓN BIENVENIDA */}
           <View style={styles.welcomeSection}>

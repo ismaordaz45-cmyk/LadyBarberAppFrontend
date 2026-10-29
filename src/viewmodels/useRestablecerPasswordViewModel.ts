@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { AuthRepository } from '../repositories/authRepository';
 import { PasswordRulesValidation } from '../models/Auth';
 
@@ -17,6 +17,7 @@ export const useRestablecerPasswordViewModel = (initialToken: string = '') => {
   const [error, setError] = useState<string | null>(null);
   const [exitoso, setExitoso] = useState(false);
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+  const requestInFlight = useRef(false);
 
   // Reglas de contraseña idénticas al frontend web
   const passwordRules: PasswordRulesValidation = useMemo(
@@ -38,6 +39,10 @@ export const useRestablecerPasswordViewModel = (initialToken: string = '') => {
   const toggleShowPasswordConfirm = () => setShowPasswordConfirm((prev) => !prev);
 
   const handleRestablecerPassword = async (): Promise<boolean> => {
+    if (requestInFlight.current) {
+      return false;
+    }
+
     const tokenLimpio = token.trim();
 
     if (!tokenLimpio) {
@@ -55,15 +60,19 @@ export const useRestablecerPasswordViewModel = (initialToken: string = '') => {
       return false;
     }
 
+    requestInFlight.current = true;
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await AuthRepository.restablecerPassword(tokenLimpio, password);
+
+      if (typeof response?.message !== 'string' || !response.message.trim()) {
+        throw new Error('Respuesta de restablecimiento inválida.');
+      }
+
       setExitoso(true);
-      setMensajeExito(
-        response.message || 'Tu contraseña ha sido restablecida exitosamente.'
-      );
+      setMensajeExito(response.message);
       return true;
     } catch (err: any) {
       const msg =
@@ -74,6 +83,7 @@ export const useRestablecerPasswordViewModel = (initialToken: string = '') => {
       setError(msg);
       return false;
     } finally {
+      requestInFlight.current = false;
       setIsLoading(false);
     }
   };

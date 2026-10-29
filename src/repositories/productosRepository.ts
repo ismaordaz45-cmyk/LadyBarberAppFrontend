@@ -97,14 +97,20 @@ const PRODUCTOS_ESTATICOS: ProductoItem[] = [
   },
 ];
 
+const clonarProducto = (producto: ProductoItem): ProductoItem => ({
+  ...producto,
+  ...(producto.badge ? { badge: { ...producto.badge } } : {}),
+});
+
 export const ProductosRepository = {
   getProductos: async (): Promise<ProductoItem[]> => {
     return new Promise((resolve) => {
-      setTimeout(() => resolve(PRODUCTOS_ESTATICOS), 50);
+      setTimeout(() => resolve(PRODUCTOS_ESTATICOS.map(clonarProducto)), 50);
     });
   },
 
   getProductoById: async (id: string): Promise<ProductoItem | undefined> => {
-    return PRODUCTOS_ESTATICOS.find((p) => p.id === id);
+    const producto = PRODUCTOS_ESTATICOS.find((p) => p.id === id);
+    return producto ? clonarProducto(producto) : undefined;
   },
 };

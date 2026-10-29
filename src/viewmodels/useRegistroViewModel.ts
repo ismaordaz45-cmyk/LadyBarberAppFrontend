@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { AuthRepository } from '../repositories/authRepository';
 import { PasswordRulesValidation, RegistroRequest } from '../models/Auth';
 
@@ -41,6 +41,7 @@ export const useRegistroViewModel = () => {
   const [error, setError] = useState<string | null>(null);
   const [exitoso, setExitoso] = useState(false);
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+  const requestInFlight = useRef(false);
 
   const updateField = (field: keyof RegistroFormData, value: string) => {
     if (field === 'telefono') {
@@ -108,6 +109,10 @@ export const useRegistroViewModel = () => {
   const toggleShowPasswordConfirm = () => setShowPasswordConfirm((prev) => !prev);
 
   const handleRegistro = async (): Promise<boolean> => {
+    if (requestInFlight.current) {
+      return false;
+    }
+
     const nombreTrim = formData.nombre.trim();
     const correoTrim = formData.correo.trim().toLowerCase();
     const telTrim = formData.telefono.trim();
@@ -162,6 +167,7 @@ export const useRegistroViewModel = () => {
       return false;
     }
 
+    requestInFlight.current = true;
     setIsLoading(true);
     setError(null);
 
@@ -179,8 +185,13 @@ export const useRegistroViewModel = () => {
 
     try {
       const response = await AuthRepository.registro(payload);
+
+      if (typeof response?.message !== 'string' || !response.message.trim()) {
+        throw new Error('Respuesta de registro inválida.');
+      }
+
       setExitoso(true);
-      setMensajeExito(response.message || 'Usuario registrado exitosamente.');
+      setMensajeExito(response.message);
       return true;
     } catch (err: any) {
       const msg =
@@ -191,6 +202,7 @@ export const useRegistroViewModel = () => {
       setError(msg);
       return false;
     } finally {
+      requestInFlight.current = false;
       setIsLoading(false);
     }
   };

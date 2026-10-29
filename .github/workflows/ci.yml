@@ -12,6 +12,12 @@ on:
       - main
       - release
   workflow_dispatch:
+    inputs:
+      build_android:
+        description: Generar AAB firmado de produccion
+        required: true
+        default: false
+        type: boolean
 
 jobs:
   validate-release-source:
@@ -86,8 +92,9 @@ jobs:
       ${{
         needs.validate-release-source.result == 'success' &&
         needs.test.result == 'success' &&
-        github.event_name == 'push' &&
-        github.ref == 'refs/heads/main'
+        github.event_name == 'workflow_dispatch' &&
+        github.ref == 'refs/heads/main' &&
+        inputs.build_android == true
       }}
     runs-on: ubuntu-latest
     environment: android-build

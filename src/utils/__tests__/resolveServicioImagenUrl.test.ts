@@ -41,4 +41,10 @@ describe('Pruebas Unitarias: resolveServicioImagenUrl', () => {
 
     expect(resultado).toBe('http://192.168.0.100:3000/uploads/servicios/corte-moderno.png');
   });
+
+  it('debe resolver un nombre de archivo suelto contra la base del backend', () => {
+    const resultado = resolveServicioImagenUrl('corte-clasico.webp', API_URL);
+
+    expect(resultado).toBe('http://192.168.0.100:3000/uploads/corte-clasico.webp');
+  });
 });

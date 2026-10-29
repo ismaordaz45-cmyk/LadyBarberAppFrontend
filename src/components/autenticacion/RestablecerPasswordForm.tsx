@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -76,6 +76,13 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
   const [overlayHeadline, setOverlayHeadline] = useState('Actualizando contraseña...');
   const [overlayMessage, setOverlayMessage] = useState('Guardando tu nueva clave de acceso...');
   const [overlaySuccess, setOverlaySuccess] = useState(false);
+  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (navigationTimeoutRef.current !== null) {
+      clearTimeout(navigationTimeoutRef.current);
+    }
+  }, []);
 
   const onSubmit = async () => {
     if (!token.trim() || !password || !passwordConfirm) {
@@ -94,7 +101,8 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
       setOverlayMessage('Tu clave ha sido cambiada con éxito. Redirigiendo...');
       setOverlaySuccess(true);
 
-      setTimeout(() => {
+      navigationTimeoutRef.current = setTimeout(() => {
+        navigationTimeoutRef.current = null;
         setShowOverlay(false);
         if (onSuccess) {
           onSuccess();

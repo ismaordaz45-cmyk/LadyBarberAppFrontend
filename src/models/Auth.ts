@@ -8,6 +8,7 @@ export interface User {
   rol: string;
 }
 
+
 export interface LoginResponse {
   message: string;
   token: string;

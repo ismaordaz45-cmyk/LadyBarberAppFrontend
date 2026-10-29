@@ -70,7 +70,7 @@ export function resolveServicioImagenUrl(
 
   // Ruta con extensión reconocida de imagen: asumir que es un archivo de /uploads
   if (/\.(jpe?g|png|gif|webp|svg)(\?|#|$)/i.test(t)) {
-    return absolutizeUploads(`/${t.replace(/^\//, '')}`);
+    return absolutizeUploads(`/uploads/${t.replace(/^\//, '')}`);
   }
 
   // Fallback: intentar absolutizar como /uploads

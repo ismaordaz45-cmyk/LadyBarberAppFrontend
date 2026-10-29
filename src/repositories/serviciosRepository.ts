@@ -17,6 +17,14 @@ function normalizar(api: ServicioAPI): ServicioItem {
   };
 }
 
+function esServicioActivoValido(value: unknown): value is ServicioAPI {
+  if (value === null || typeof value !== 'object') return false;
+
+  const servicio = value as Partial<ServicioAPI> & { id?: unknown };
+  const tieneId = typeof servicio.id === 'number' || typeof servicio.id === 'string';
+  return tieneId && typeof servicio.nombre === 'string' && servicio.estaActivo === 1;
+}
+
 /**
  * Repositorio real que consulta GET /api/servicios del backend.
  */
@@ -25,7 +33,7 @@ export const ServiciosRepository = {
     const data = await apiClient<ServicioAPI[]>('/servicios');
     if (!Array.isArray(data)) return [];
     return data
-      .filter((s) => s.estaActivo === 1)
+      .filter(esServicioActivoValido)
       .map(normalizar);
   },
 };

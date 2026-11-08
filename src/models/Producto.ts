@@ -1,9 +1,22 @@
 export type CategoriaProducto =
   | 'Todos'
+  | 'Productos'
   | 'Tratamientos'
   | 'Pomadas & Styling'
   | 'Cuidado Diario'
   | 'Herramientas';
+
+export interface ProductoAPI {
+  id: number | string;
+  nombre: string;
+  descripcion?: string | null;
+  unidad?: string | null;
+  stockActual?: number | string | null;
+  stockMinimo?: number | string | null;
+  precio?: number | string | null;
+  estaActivo?: number | boolean;
+  imagen?: string | null;
+}
 
 export interface ProductoItem {
   id: string;
@@ -19,4 +32,5 @@ export interface ProductoItem {
   };
   volumen?: string;
   descripcion: string;
+  stockActual?: number;
 }

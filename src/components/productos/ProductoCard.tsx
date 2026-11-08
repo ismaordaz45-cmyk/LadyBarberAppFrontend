@@ -1,22 +1,24 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { ProductoItem } from '../../models/Producto';
 
 interface ProductoCardProps {
   item: ProductoItem;
-  onAgregar: (item: ProductoItem) => void;
 }
 
-export const ProductoCard: React.FC<ProductoCardProps> = ({ item, onAgregar }) => {
+export const ProductoCard: React.FC<ProductoCardProps> = ({ item }) => {
   const [imageFailed, setImageFailed] = React.useState(false);
-  const hasRemoteImage = /^https?:\/\/\S+$/i.test(item.imagenUrl || '');
+  const hasRemoteImage = /^(https?:\/\/\S+|data:image\/[^;]+;base64,)/i.test(item.imagenUrl || '');
   const imageSource = hasRemoteImage && !imageFailed
     ? { uri: item.imagenUrl }
     : require('../../../assets/images/logo-itza.png');
   const safePrice = Number.isFinite(item.precioMXN) && item.precioMXN >= 0
     ? item.precioMXN
     : 0;
+  const stockLabel = typeof item.stockActual === 'number'
+    ? item.stockActual > 0 ? `Stock: ${item.stockActual}` : 'Agotado'
+    : 'Disponible';
+  const isOutOfStock = item.stockActual === 0;
 
   return (
     <View style={styles.card}>
@@ -58,7 +60,7 @@ export const ProductoCard: React.FC<ProductoCardProps> = ({ item, onAgregar }) =
           {item.subtitulo}
         </Text>
 
-        {/* Fila de Precio y Botón + */}
+        {/* Precio y disponibilidad informativa; la compra aún no está habilitada. */}
         <View style={styles.footerRow}>
           <View>
             <Text style={styles.priceLabel}>Precio</Text>
@@ -68,13 +70,11 @@ export const ProductoCard: React.FC<ProductoCardProps> = ({ item, onAgregar }) =
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => onAgregar(item)}
-            activeOpacity={0.8}
-          >
-            <Feather name="plus" size={17} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={[styles.stockBadge, isOutOfStock && styles.stockBadgeEmpty]}>
+            <Text style={[styles.stockText, isOutOfStock && styles.stockTextEmpty]}>
+              {stockLabel}
+            </Text>
+          </View>
         </View>
       </View>
     </View>
@@ -184,12 +184,21 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     marginLeft: 2,
   },
-  addBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#1E293B',
-    justifyContent: 'center',
-    alignItems: 'center',
+  stockBadge: {
+    borderRadius: 12,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  stockBadgeEmpty: {
+    backgroundColor: '#FEE2E2',
+  },
+  stockText: {
+    color: '#166534',
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
+  stockTextEmpty: {
+    color: '#991B1B',
   },
 });

@@ -21,15 +21,16 @@ const producto: ProductoItem = {
   precioMXN: 420,
   imagenUrl: 'https://example.invalid/aceite.jpg',
   descripcion: 'Tratamiento capilar',
+  stockActual: 8,
   badge: { texto: 'Top Seller', tipo: 'topseller' },
 };
 
-const renderCard = (item: ProductoItem = producto, onAgregar = jest.fn()) => {
+const renderCard = (item: ProductoItem = producto) => {
   let renderer: any;
   act(() => {
-    renderer = create(<ProductoCard item={item} onAgregar={onAgregar} />);
+    renderer = create(<ProductoCard item={item} />);
   });
-  return { renderer, onAgregar };
+  return { renderer };
 };
 
 const allText = (renderer: any): string => renderer.root.findAllByType(Text)
@@ -76,6 +77,13 @@ describe('HU-04 ProductoCard', () => {
     act(() => renderer.unmount());
   });
 
+  it('muestra una imagen Base64 real del inventario', () => {
+    const dataUri = 'data:image/webp;base64,UklGRiQAAABXRUJQ';
+    const { renderer } = renderCard({ ...producto, imagenUrl: dataUri });
+
+    expect(renderer.root.findByType(Image).props.source).toEqual({ uri: dataUri });
+  });
+
   it('cambia a la imagen de respaldo si la imagen remota falla', () => {
     const { renderer } = renderCard();
     const image = renderer.root.findByType(Image);
@@ -96,12 +104,20 @@ describe('HU-04 ProductoCard', () => {
     act(() => second.renderer.unmount());
   });
 
-  it('entrega el producto exacto al presionar agregar', () => {
-    const onAgregar = jest.fn();
-    const { renderer } = renderCard(producto, onAgregar);
-    act(() => renderer.root.findByType(TouchableOpacity).props.onPress());
-    expect(onAgregar).toHaveBeenCalledTimes(1);
-    expect(onAgregar).toHaveBeenCalledWith(producto);
-    act(() => renderer.unmount());
+  it('muestra la disponibilidad sin ofrecer una compra todavia', () => {
+    const disponible = renderCard();
+    expect(allText(disponible.renderer)).toContain('Stock: 8');
+    expect(disponible.renderer.root.findAllByType(TouchableOpacity)).toHaveLength(0);
+    act(() => disponible.renderer.unmount());
+
+    const agotado = renderCard({ ...producto, stockActual: 0 });
+    expect(allText(agotado.renderer)).toContain('Agotado');
+    expect(agotado.renderer.root.findAllByType(TouchableOpacity)).toHaveLength(0);
+    act(() => agotado.renderer.unmount());
+
+    const sinDato = renderCard({ ...producto, stockActual: undefined });
+    expect(allText(sinDato.renderer)).toContain('Disponible');
+    expect(sinDato.renderer.root.findAllByType(TouchableOpacity)).toHaveLength(0);
+    act(() => sinDato.renderer.unmount());
   });
 });

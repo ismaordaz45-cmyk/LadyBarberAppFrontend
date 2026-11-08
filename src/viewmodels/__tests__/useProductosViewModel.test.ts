@@ -192,41 +192,6 @@ describe('HU-04 useProductosViewModel', () => {
     expect(result.current.productos.map((producto) => producto.precioMXN)).toEqual([0, 0, 420]);
   });
 
-  it('incrementa el contador local ante adiciones repetidas', async () => {
-    jest.useFakeTimers();
-    const { result } = await renderLoaded();
-    act(() => {
-      result.current.agregarAlCarrito(productos[0]);
-      result.current.agregarAlCarrito(productos[0]);
-      result.current.agregarAlCarrito(productos[1]);
-    });
-    expect(result.current.totalItemsCarrito).toBe(3);
-  });
-
-  it('mantiene el mensaje de la adicion mas reciente y lo limpia a los dos segundos', async () => {
-    jest.useFakeTimers();
-    const { result } = await renderLoaded();
-
-    act(() => result.current.agregarAlCarrito(productos[0]));
-    expect(result.current.mensajeFeedback).toContain('Aceite Premium');
-    act(() => jest.advanceTimersByTime(1000));
-    act(() => result.current.agregarAlCarrito(productos[1]));
-    act(() => jest.advanceTimersByTime(1000));
-    expect(result.current.mensajeFeedback).toContain('Pomada Mate');
-    act(() => jest.advanceTimersByTime(1000));
-    expect(result.current.mensajeFeedback).toBeNull();
-  });
-
-  it('limpia el temporizador de feedback al desmontarse', async () => {
-    jest.useFakeTimers();
-    const { result, renderer } = await renderLoaded();
-    const timersAntesDeAgregar = jest.getTimerCount();
-    act(() => result.current.agregarAlCarrito(productos[0]));
-    expect(jest.getTimerCount()).toBe(timersAntesDeAgregar + 1);
-    act(() => renderer.unmount());
-    expect(jest.getTimerCount()).toBe(timersAntesDeAgregar);
-  });
-
   it('no actualiza estado si la carga termina despues del desmontaje', async () => {
     const deferred = createDeferred<ProductoItem[]>();
     jest.spyOn(ProductosRepository, 'getProductos').mockReturnValueOnce(deferred.promise);

@@ -1,14 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ProductoItem, CategoriaProducto } from '../models/Producto';
 import { ProductosRepository } from '../repositories/productosRepository';
-
-const CATEGORIAS: CategoriaProducto[] = [
-  'Todos',
-  'Tratamientos',
-  'Pomadas & Styling',
-  'Cuidado Diario',
-  'Herramientas',
-];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -22,7 +14,7 @@ const normalizeProducto = (value: unknown): ProductoItem | null => {
   const id = stringValue(value.id);
   const nombre = stringValue(value.nombre);
   const categoria = stringValue(value.categoria);
-  if (!id || !nombre || !CATEGORIAS.includes(categoria as CategoriaProducto) || categoria === 'Todos') {
+  if (!id || !nombre || !categoria || categoria === 'Todos') {
     return null;
   }
 
@@ -65,11 +57,11 @@ export const useProductosViewModel = () => {
   const [categoriaActiva, setCategoriaActiva] = useState<CategoriaProducto>('Todos');
   const [busqueda, setBusqueda] = useState('');
   const [ordenAscendente, setOrdenAscendente] = useState<boolean | null>(null);
-  const [carrito, setCarrito] = useState<Record<string, number>>({});
-  const [mensajeFeedback, setMensajeFeedback] = useState<string | null>(null);
-  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const categoriasDisponibles = CATEGORIAS;
+  const categoriasDisponibles = useMemo<CategoriaProducto[]>(() => [
+    'Todos',
+    ...Array.from(new Set(productos.map((product) => product.categoria))),
+  ], [productos]);
 
   useEffect(() => {
     let cancel = false;
@@ -99,10 +91,6 @@ export const useProductosViewModel = () => {
     cargarProductos();
     return () => {
       cancel = true;
-      if (feedbackTimerRef.current) {
-        clearTimeout(feedbackTimerRef.current);
-        feedbackTimerRef.current = null;
-      }
     };
   }, []);
 
@@ -131,20 +119,6 @@ export const useProductosViewModel = () => {
     return lista;
   }, [productos, categoriaActiva, busqueda, ordenAscendente]);
 
-  const agregarAlCarrito = (producto: ProductoItem) => {
-    setCarrito((prev) => ({
-      ...prev,
-      [producto.id]: (prev[producto.id] || 0) + 1,
-    }));
-
-    setMensajeFeedback(`"${producto.nombre.slice(0, 24)}..." agregado.`);
-    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
-    feedbackTimerRef.current = setTimeout(() => {
-      setMensajeFeedback(null);
-      feedbackTimerRef.current = null;
-    }, 2000);
-  };
-
   const toggleOrden = () => {
     setOrdenAscendente((prev) => {
       if (prev === null) return true; // Menor a mayor
@@ -152,10 +126,6 @@ export const useProductosViewModel = () => {
       return null; // Original
     });
   };
-
-  const totalItemsCarrito = useMemo(() => {
-    return Object.values(carrito).reduce((acc, qty) => acc + qty, 0);
-  }, [carrito]);
 
   return {
     isLoading,
@@ -169,8 +139,5 @@ export const useProductosViewModel = () => {
     totalArticulos: productosFiltrados.length,
     ordenAscendente,
     toggleOrden,
-    agregarAlCarrito,
-    totalItemsCarrito,
-    mensajeFeedback,
   };
 };

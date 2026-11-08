@@ -33,9 +33,6 @@ export default function ProductosScreen() {
     totalArticulos,
     toggleOrden,
     ordenAscendente,
-    agregarAlCarrito,
-    totalItemsCarrito,
-    mensajeFeedback,
   } = useProductosViewModel();
 
   return (
@@ -56,7 +53,7 @@ export default function ProductosScreen() {
           </View>
         </View>
 
-        {/* Logo circular del negocio con badge de carrito si hay productos */}
+        {/* Logo circular del negocio */}
         <View style={styles.topHeaderRight}>
           <View style={styles.logoCircular}>
             <Image
@@ -65,21 +62,8 @@ export default function ProductosScreen() {
               resizeMode="cover"
             />
           </View>
-          {totalItemsCarrito > 0 && (
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>{totalItemsCarrito}</Text>
-            </View>
-          )}
         </View>
       </View>
-
-      {/* Notificación flotante de producto agregado */}
-      {mensajeFeedback && (
-        <View style={styles.toastNotification}>
-          <Feather name="check-circle" size={15} color="#16A34A" />
-          <Text style={styles.toastText}>{mensajeFeedback}</Text>
-        </View>
-      )}
 
       {isLoading && (
         <View style={styles.statusContainer}>
@@ -192,11 +176,7 @@ export default function ProductosScreen() {
             </View>
           ) : (
             productos.map((prod) => (
-              <ProductoCard
-                key={prod.id}
-                item={prod}
-                onAgregar={agregarAlCarrito}
-              />
+              <ProductoCard key={prod.id} item={prod} />
             ))
           )}
         </View>
@@ -260,43 +240,6 @@ const styles = StyleSheet.create({
   logoCircularImg: {
     width: '100%',
     height: '100%',
-  },
-  cartBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#D97706',
-    borderRadius: 9,
-    minWidth: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
-  cartBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  toastNotification: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#DCFCE7',
-    borderWidth: 1,
-    borderColor: '#86EFAC',
-    marginHorizontal: 20,
-    marginTop: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    gap: 8,
-  },
-  toastText: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: '#166534',
   },
   statusContainer: {
     alignItems: 'center',

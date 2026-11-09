@@ -65,6 +65,7 @@ export function resolveServicioImagenUrl(
     let mimeType = 'image/jpeg';
     if (clean.startsWith('iVBO')) mimeType = 'image/png';
     else if (clean.startsWith('R0lG')) mimeType = 'image/gif';
+    else if (clean.startsWith('UklG')) mimeType = 'image/webp';
     return `data:${mimeType};base64,${clean}`;
   }
 

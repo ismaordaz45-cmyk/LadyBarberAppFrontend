@@ -17,11 +17,11 @@ jest.mock('../../viewmodels/useProductosViewModel', () => ({
 
 jest.mock('../../components/productos/ProductoCard', () => {
   const ReactModule = require('react');
-  const { Text: NativeText, TouchableOpacity: NativeButton } = require('react-native');
+  const { Text: NativeText, View: NativeView } = require('react-native');
   return {
-    ProductoCard: ({ item, onAgregar }: any) => ReactModule.createElement(
-      NativeButton,
-      { testID: `producto-${item.id}`, onPress: () => onAgregar(item) },
+    ProductoCard: ({ item }: any) => ReactModule.createElement(
+      NativeView,
+      { testID: `producto-${item.id}` },
       ReactModule.createElement(NativeText, null, item.nombre)
     ),
   };
@@ -58,9 +58,6 @@ const baseState = {
   totalArticulos: 1,
   toggleOrden: jest.fn(),
   ordenAscendente: null,
-  agregarAlCarrito: jest.fn(),
-  totalItemsCarrito: 0,
-  mensajeFeedback: null,
 };
 
 const renderScreen = (overrides: Record<string, unknown> = {}) => {
@@ -90,7 +87,6 @@ describe('HU-04 ProductosScreen', () => {
     baseState.setCategoriaActiva.mockClear();
     baseState.setBusqueda.mockClear();
     baseState.toggleOrden.mockClear();
-    baseState.agregarAlCarrito.mockClear();
   });
 
   it('presenta el encabezado y el catalogo disponible', () => {
@@ -155,22 +151,12 @@ describe('HU-04 ProductosScreen', () => {
     act(() => renderer.unmount());
   });
 
-  it('conecta la accion agregar sin afirmar que existe un carrito real', () => {
-    const agregarAlCarrito = jest.fn();
-    const { renderer } = renderScreen({ agregarAlCarrito });
-    act(() => renderer.root.findByProps({ testID: 'producto-p1' }).props.onPress());
-    expect(agregarAlCarrito).toHaveBeenCalledWith(producto);
-    act(() => renderer.unmount());
-  });
-
-  it('muestra el contador local y el mensaje temporal', () => {
-    const { renderer } = renderScreen({
-      totalItemsCarrito: 2,
-      mensajeFeedback: 'Producto agregado localmente',
-    });
+  it('presenta el catalogo sin controles ni mensajes de carrito local', () => {
+    const { renderer } = renderScreen();
     const text = allText(renderer);
-    expect(text).toContain('2');
-    expect(text).toContain('Producto agregado localmente');
+    expect(renderer.root.findAllByProps({ testID: 'producto-p1' }).length).toBeGreaterThan(0);
+    expect(text).not.toContain('Producto agregado');
+    expect(text).not.toContain('shopping-cart');
     act(() => renderer.unmount());
   });
 

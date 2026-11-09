@@ -35,6 +35,14 @@ describe('Pruebas Unitarias: resolveServicioImagenUrl', () => {
     expect(resultado).toBe(`data:image/png;base64,${rawPngBase64}`);
   });
 
+  it('debe detectar imagenes WebP crudas almacenadas por el inventario', () => {
+    const rawWebpBase64 = 'UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAUAmJQBOgCHwAP7+4AAA';
+
+    expect(resolveServicioImagenUrl(rawWebpBase64, API_URL)).toBe(
+      `data:image/webp;base64,${rawWebpBase64}`
+    );
+  });
+
   it('debe resolver la ruta relativa con apiBaseUrl cuando se recibe una ruta /uploads/ o archivo suelto', () => {
     const rutaUploads = '/uploads/servicios/corte-moderno.png';
     const resultado = resolveServicioImagenUrl(rutaUploads, API_URL);

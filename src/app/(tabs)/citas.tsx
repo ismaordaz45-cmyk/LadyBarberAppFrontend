@@ -13,6 +13,7 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCitasViewModel, getMinFechaReserva } from '../../viewmodels/useCitasViewModel';
 import { resolveServicioImagenUrl } from '../../utils/resolveServicioImagenUrl';
 import { API_URL } from '../../services/api';
+import { useRouter } from 'expo-router';
 
 const API_BASE = API_URL.replace(/\/api\/?$/, '');
 
@@ -29,6 +30,7 @@ const COLORS = {
 };
 
 export default function CitasScreen() {
+  const router = useRouter();
   const {
     activeStep,
     isLoadingCatalogo,
@@ -269,9 +271,20 @@ export default function CitasScreen() {
       </View>
 
       <View style={styles.termsBox}>
-        <Text style={{flex: 1, fontSize: 12, color: COLORS.muted}}>
-          Acepto las políticas de cancelación. Entiendo que el anticipo no es reembolsable en caso de no asistir.
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 12, color: COLORS.muted }}>
+            Acepto las políticas de cancelación. Entiendo que el anticipo no es reembolsable en caso de no asistir.
+          </Text>
+          <View style={{ flexDirection: 'row', marginTop: 5 }}>
+            <TouchableOpacity onPress={() => router.push('/terminos')}>
+              <Text style={{ fontSize: 12, color: COLORS.blue, fontWeight: '700' }}>Ver términos</Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 12, color: COLORS.muted }}> · </Text>
+            <TouchableOpacity onPress={() => router.push('/privacidad')}>
+              <Text style={{ fontSize: 12, color: COLORS.blue, fontWeight: '700' }}>Privacidad</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <Switch 
           value={terminosAceptados} 
           onValueChange={setTerminosAceptados}

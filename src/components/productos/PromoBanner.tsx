@@ -9,9 +9,9 @@ export const PromoBanner: React.FC = () => {
         <Feather name="shopping-bag" size={20} color="#FFFFFF" />
       </View>
       <View style={styles.textBox}>
-        <Text style={styles.title}>Entrega Personalizada</Text>
+        <Text style={styles.title}>Catálogo informativo</Text>
         <Text style={styles.description}>
-          Recógelo en el salón el día de tu cita o recibe a domicilio con empaque de lujo.
+          Consulta productos, precios y disponibilidad. La compra desde la aplicación estará disponible próximamente.
         </Text>
       </View>
     </View>

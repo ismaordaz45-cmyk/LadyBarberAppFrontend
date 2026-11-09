@@ -45,10 +45,11 @@ const createViewModel = (handleLogin: jest.Mock) => ({
 describe('HU-01 LoginScreen navegacion', () => {
   let renderer: any;
   const replace = jest.fn();
+  const push = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useRouterMock.mockReturnValue({ replace, push: jest.fn() });
+    useRouterMock.mockReturnValue({ replace, push });
   });
 
   afterEach(() => {
@@ -90,5 +91,15 @@ describe('HU-01 LoginScreen navegacion', () => {
 
     expect(handleLogin).toHaveBeenCalledTimes(1);
     expect(replace).not.toHaveBeenCalled();
+  });
+
+  it('permite consultar términos y privacidad sin iniciar sesión', () => {
+    useLoginViewModelMock.mockReturnValue(createViewModel(jest.fn()));
+    act(() => { renderer = create(<LoginScreen />); });
+
+    act(() => findButtonByText(renderer.root, 'Términos').props.onPress());
+    act(() => findButtonByText(renderer.root, 'Privacidad').props.onPress());
+    expect(push).toHaveBeenNthCalledWith(1, '/terminos');
+    expect(push).toHaveBeenNthCalledWith(2, '/privacidad');
   });
 });

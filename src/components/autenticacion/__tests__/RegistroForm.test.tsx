@@ -4,6 +4,12 @@ import { act, create } from 'react-test-renderer';
 import { useRegistroViewModel } from '../../../viewmodels/useRegistroViewModel';
 import { RegistroForm } from '../RegistroForm';
 
+const mockPush = jest.fn();
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
 jest.mock('../../../viewmodels/useRegistroViewModel', () => ({
   useRegistroViewModel: jest.fn(),
 }));
@@ -53,6 +59,10 @@ const createViewModel = (handleRegistro: jest.Mock) => ({
   handleRegistro,
 });
 
+const acceptLegal = (root: any) => {
+  act(() => root.findByProps({ testID: 'legal-consent-checkbox' }).props.onPress());
+};
+
 describe('HU-01 RegistroForm navegacion', () => {
   let renderer: any;
 
@@ -73,6 +83,7 @@ describe('HU-01 RegistroForm navegacion', () => {
     const onSuccess = jest.fn();
     useRegistroViewModelMock.mockReturnValue(createViewModel(handleRegistro));
     act(() => { renderer = create(<RegistroForm onSuccess={onSuccess} />); });
+    acceptLegal(renderer.root);
     const button = findButtonByText(renderer.root, 'Crear Cuenta');
     let navigationCallback: (() => void) | undefined;
     const timeoutSpy = jest.spyOn(globalThis, 'setTimeout').mockImplementation((callback) => {
@@ -94,11 +105,38 @@ describe('HU-01 RegistroForm navegacion', () => {
     const onSuccess = jest.fn();
     useRegistroViewModelMock.mockReturnValue(createViewModel(handleRegistro));
     act(() => { renderer = create(<RegistroForm onSuccess={onSuccess} />); });
+    acceptLegal(renderer.root);
     const button = findButtonByText(renderer.root, 'Crear Cuenta');
 
     await act(async () => { await button.props.onPress(); });
 
     expect(handleRegistro).toHaveBeenCalledTimes(1);
     expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it('bloquea el registro hasta aceptar mayoría de edad y documentos legales', async () => {
+    const handleRegistro = jest.fn().mockResolvedValue(true);
+    useRegistroViewModelMock.mockReturnValue(createViewModel(handleRegistro));
+    act(() => { renderer = create(<RegistroForm />); });
+
+    const button = findButtonByText(renderer.root, 'Crear Cuenta');
+    expect(button.props.disabled).toBe(true);
+    await act(async () => { await button.props.onPress(); });
+    expect(handleRegistro).not.toHaveBeenCalled();
+
+    acceptLegal(renderer.root);
+    expect(findButtonByText(renderer.root, 'Crear Cuenta').props.disabled).toBe(false);
+  });
+
+  it('abre términos y privacidad sin enviar el registro', () => {
+    const handleRegistro = jest.fn();
+    useRegistroViewModelMock.mockReturnValue(createViewModel(handleRegistro));
+    act(() => { renderer = create(<RegistroForm />); });
+
+    act(() => findButtonByText(renderer.root, 'Términos y condiciones').props.onPress());
+    act(() => findButtonByText(renderer.root, 'Política de privacidad').props.onPress());
+    expect(mockPush).toHaveBeenNthCalledWith(1, '/terminos');
+    expect(mockPush).toHaveBeenNthCalledWith(2, '/privacidad');
+    expect(handleRegistro).not.toHaveBeenCalled();
   });
 });

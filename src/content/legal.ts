@@ -4,7 +4,7 @@ export interface LegalSection {
   bullets?: string[];
 }
 
-export const LEGAL_LAST_UPDATED = '8 de noviembre de 2026';
+export const LEGAL_LAST_UPDATED = '9 de noviembre de 2026';
 export const PRIVACY_CONTACT_EMAIL = 'itzadinorasaenzhernandez@gmail.com';
 
 export const PRIVACY_SECTIONS: LegalSection[] = [
@@ -52,7 +52,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     paragraphs: [
       'Conservamos los datos mientras la cuenta permanece activa y durante los periodos necesarios para operar citas, atender obligaciones legales, contables o resolver controversias.',
       'Puedes eliminar tu cuenta desde Mi Perfil. Al confirmar con tu contraseña, se revoca el acceso y se eliminan o anonimizan los datos personales vinculados. Algunos registros de citas o transacciones pueden conservarse de forma anonimizada cuando exista una obligación legítima, sin permitir identificarte directamente.',
-      `Si no tienes instalada la aplicación, puedes iniciar una solicitud escribiendo a ${PRIVACY_CONTACT_EMAIL}. Antes de la prueba cerrada en Google Play publicaremos además una página web dedicada a este proceso.`,
+      `Si no tienes instalada la aplicación, puedes iniciar una solicitud desde la página pública de eliminación de cuenta o escribir a ${PRIVACY_CONTACT_EMAIL}. Nunca envíes tu contraseña, tokens, códigos de recuperación ni datos bancarios por correo.`,
     ],
   },
   {

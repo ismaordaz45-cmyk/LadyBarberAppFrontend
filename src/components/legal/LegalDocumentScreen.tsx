@@ -1,19 +1,38 @@
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LegalSection } from '../../content/legal';
+import { LegalPublicUrl, openLegalUrl } from '../../services/legalLinks';
+
+interface LegalExternalLink {
+  label: string;
+  url: LegalPublicUrl;
+}
 
 interface LegalDocumentScreenProps {
   title: string;
   subtitle: string;
   lastUpdated: string;
   sections: LegalSection[];
+  externalLinks?: LegalExternalLink[];
 }
 
-export function LegalDocumentScreen({ title, subtitle, lastUpdated, sections }: LegalDocumentScreenProps) {
+export function LegalDocumentScreen({ title, subtitle, lastUpdated, sections, externalLinks = [] }: LegalDocumentScreenProps) {
   const router = useRouter();
+
+  const handleExternalLink = async (url: LegalPublicUrl) => {
+    try {
+      await openLegalUrl(url);
+    } catch {
+      Alert.alert(
+        'No se pudo abrir el enlace',
+        'Comprueba tu conexión e intenta nuevamente.'
+      );
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
@@ -30,6 +49,22 @@ export function LegalDocumentScreen({ title, subtitle, lastUpdated, sections }: 
           <Feather name="shield" size={19} color="#B47D22" />
           <Text style={styles.versionText}>Última actualización: {lastUpdated}</Text>
         </View>
+        {externalLinks.length > 0 ? (
+          <View style={styles.externalLinks}>
+            {externalLinks.map((link) => (
+              <TouchableOpacity
+                key={link.url}
+                accessibilityRole="link"
+                accessibilityLabel={link.label}
+                onPress={() => void handleExternalLink(link.url)}
+                style={styles.externalLinkButton}
+              >
+                <Feather name="external-link" size={17} color="#1E3A5F" />
+                <Text style={styles.externalLinkText}>{link.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : null}
         {sections.map((section) => (
           <View key={section.title} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
@@ -56,6 +91,9 @@ const styles = StyleSheet.create({
   content: { padding: 18, paddingBottom: 42 },
   versionCard: { flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: '#FFFDF5', borderColor: '#F3D17A', borderWidth: 1, borderRadius: 14, padding: 13, marginBottom: 16 },
   versionText: { color: '#854D0E', fontSize: 12.5, fontWeight: '700' },
+  externalLinks: { gap: 9, marginBottom: 16 },
+  externalLinkButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 46, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, paddingHorizontal: 14, backgroundColor: '#FFFFFF' },
+  externalLinkText: { color: '#1E3A5F', fontSize: 13.5, fontWeight: '700', textAlign: 'center' },
   section: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 16, padding: 16, marginBottom: 12 },
   sectionTitle: { color: '#1E3A5F', fontSize: 16, fontWeight: '800', marginBottom: 9 },
   paragraph: { color: '#475569', fontSize: 14, lineHeight: 21, marginBottom: 8 },

@@ -15,6 +15,8 @@ export default function RootLayout() {
         <Stack.Screen name="registro" />
         <Stack.Screen name="recuperar-password" />
         <Stack.Screen name="restablecer-password" />
+        <Stack.Screen name="privacidad" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="terminos" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="productos" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="(tabs)" />
       </Stack>

@@ -208,6 +208,16 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
+          <View style={styles.legalRow}>
+            <TouchableOpacity onPress={() => router.push('/terminos')}>
+              <Text style={styles.legalLink}>Términos</Text>
+            </TouchableOpacity>
+            <Text style={styles.legalDivider}>•</Text>
+            <TouchableOpacity onPress={() => router.push('/privacidad')}>
+              <Text style={styles.legalLink}>Privacidad</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Footer de Seguridad y Garantía */}
           <View style={styles.footerRow}>
             <MaterialCommunityIcons
@@ -242,6 +252,20 @@ const styles = StyleSheet.create({
   keyboardContainer: {
     flex: 1,
   },
+  legalRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 14,
+  },
+  legalLink: {
+    color: '#1E3A5F',
+    fontSize: 12.5,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+  legalDivider: { color: '#94A3B8', fontSize: 12 },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 22,

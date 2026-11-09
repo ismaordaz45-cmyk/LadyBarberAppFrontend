@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useRegistroViewModel } from '../../viewmodels/useRegistroViewModel';
 import { BarberPole } from '../compartidos/BarberPole';
 import { BarberActionOverlay } from '../compartidos/BarberActionOverlay';
@@ -55,6 +56,7 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
   onBackToLogin,
   onSuccess,
 }) => {
+  const router = useRouter();
   const {
     formData,
     updateField,
@@ -78,8 +80,10 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
   const [overlayHeadline, setOverlayHeadline] = useState('¡Casi listo!');
   const [overlayMessage, setOverlayMessage] = useState('Creando tu cuenta...');
   const [overlaySuccess, setOverlaySuccess] = useState(false);
+  const [legalAccepted, setLegalAccepted] = useState(false);
 
   const onSubmit = async () => {
+    if (!legalAccepted) return;
     // Si campos esenciales faltan, validar localmente primero sin abrir overlay
     if (
       !formData.nombre.trim() ||
@@ -415,11 +419,45 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
               </View>
             ) : null}
 
+            <View style={styles.legalCard}>
+              <TouchableOpacity
+                testID="legal-consent-checkbox"
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: legalAccepted }}
+                onPress={() => setLegalAccepted((current) => !current)}
+                style={styles.legalCheckbox}
+                disabled={isLoading}
+              >
+                <Feather
+                  name={legalAccepted ? 'check-square' : 'square'}
+                  size={21}
+                  color={legalAccepted ? COLORS.primaryNavy : COLORS.placeholder}
+                />
+              </TouchableOpacity>
+              <View style={styles.legalTextContainer}>
+                <Text style={styles.legalText}>
+                  Declaro que soy mayor de 18 años y he leído y acepto:
+                </Text>
+                <View style={styles.legalLinksRow}>
+                  <TouchableOpacity onPress={() => router.push('/terminos')}>
+                    <Text style={styles.legalLink}>Términos y condiciones</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.legalSeparator}> y </Text>
+                  <TouchableOpacity onPress={() => router.push('/privacidad')}>
+                    <Text style={styles.legalLink}>Política de privacidad</Text>
+                  </TouchableOpacity>
+                </View>
+                {!legalAccepted ? (
+                  <Text style={styles.legalRequired}>Aceptación requerida para crear la cuenta.</Text>
+                ) : null}
+              </View>
+            </View>
+
             {/* Botón Principal: Crear Cuenta */}
             <TouchableOpacity
-              style={[styles.primaryBtn, isLoading && styles.btnDisabled]}
+              style={[styles.primaryBtn, (isLoading || !canSubmit || !legalAccepted) && styles.btnDisabled]}
               onPress={onSubmit}
-              disabled={isLoading}
+              disabled={isLoading || !canSubmit || !legalAccepted}
               activeOpacity={0.85}
             >
               {isLoading ? (
@@ -844,4 +882,29 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 8,
   },
+  legalCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+  },
+  legalCheckbox: {
+    padding: 2,
+    marginRight: 9,
+  },
+  legalTextContainer: { flex: 1 },
+  legalText: { color: COLORS.textBody, fontSize: 12.5, lineHeight: 18 },
+  legalLinksRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 3 },
+  legalLink: {
+    color: COLORS.primaryNavy,
+    fontSize: 12.5,
+    fontWeight: '800',
+    textDecorationLine: 'underline',
+  },
+  legalSeparator: { color: COLORS.textMuted, fontSize: 12.5 },
+  legalRequired: { color: COLORS.errorText, fontSize: 11.5, marginTop: 5 },
 });

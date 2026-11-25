@@ -1,3 +1,4 @@
+import { useThemedStyles } from '../hooks/use-themed-styles';
 import React from 'react';
 import {
   SafeAreaView,
@@ -10,6 +11,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { RestablecerPasswordForm } from '../components/autenticacion/RestablecerPasswordForm';
 
 export default function RestablecerPasswordScreen() {
+  const styles = useThemedStyles(baseStyles);
   const router = useRouter();
 
   const params = useLocalSearchParams<{ token?: string }>();
@@ -37,7 +39,7 @@ export default function RestablecerPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#F1F5F9',

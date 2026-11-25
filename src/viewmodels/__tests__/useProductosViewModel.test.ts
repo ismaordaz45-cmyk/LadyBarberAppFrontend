@@ -158,6 +158,37 @@ describe('HU-04 useProductosViewModel', () => {
     expect(result.current.productos.map((producto) => producto.id)).toEqual(['p2']);
   });
 
+  it('conserva existencias, combina disponibilidad y busca sin acentos', async () => {
+    const { result } = await renderLoaded([
+      { ...productos[0], nombre: 'Sérum', stockActual: 3 },
+      { ...productos[1], nombre: 'Sérum agotado', stockActual: 0 },
+    ]);
+    expect(result.current.catalogo[0].stockActual).toBe(3);
+    act(() => { result.current.setBusqueda('serum'); result.current.setSoloDisponibles(true); });
+    expect(result.current.productos.map(p => p.id)).toEqual(['p1']);
+  });
+
+  it('muestra seis inicialmente, agrega seis y reinicia al cambiar filtros', async () => {
+    const items = Array.from({ length: 15 }, (_, i) => ({ ...productos[0], id: String(i), stockActual: 2 }));
+    const { result } = await renderLoaded(items);
+    expect(result.current.productosVisibles).toHaveLength(6);
+    expect(result.current.hayMas).toBe(true);
+    act(() => result.current.verMas()); expect(result.current.productosVisibles).toHaveLength(12);
+    act(() => result.current.verMas()); expect(result.current.productosVisibles).toHaveLength(15);
+    expect(result.current.hayMas).toBe(false);
+    act(() => result.current.setBusqueda('aceite')); expect(result.current.productosVisibles).toHaveLength(6);
+  });
+
+  it('permite reintentar sin solicitudes por cada búsqueda o filtro', async () => {
+    const spy = jest.spyOn(ProductosRepository, 'getProductos').mockRejectedValueOnce(new Error('Sin conexión')).mockResolvedValueOnce(productos);
+    const { result } = renderHook();
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => { result.current.recargar(); });
+    expect(result.current.error).toBeNull();
+    act(() => { result.current.setBusqueda('aceite'); result.current.setSoloDisponibles(true); });
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
   it('filtra por una categoria existente', async () => {
     const { result } = await renderLoaded();
     act(() => result.current.setCategoriaActiva('Herramientas'));
@@ -192,6 +223,16 @@ describe('HU-04 useProductosViewModel', () => {
     expect(result.current.productos.map((producto) => producto.precioMXN)).toEqual([0, 0, 420]);
   });
 
+  it('selecciona el detalle desde el catálogo completo y conserva los filtros al cerrarlo', async () => {
+    const { result } = await renderLoaded();
+    act(() => result.current.abrirDetalle(productos[0]));
+    expect(result.current.productoDetalle?.id).toBe('p1');
+    act(() => result.current.setBusqueda('pomada'));
+    expect(result.current.productoDetalle?.id).toBe('p1');
+    act(() => result.current.cerrarDetalle());
+    expect(result.current.productoDetalle).toBeNull();
+    expect(result.current.busqueda).toBe('pomada');
+  });
   it('no actualiza estado si la carga termina despues del desmontaje', async () => {
     const deferred = createDeferred<ProductoItem[]>();
     jest.spyOn(ProductosRepository, 'getProductos').mockReturnValueOnce(deferred.promise);

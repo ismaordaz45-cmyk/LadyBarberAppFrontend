@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Text, TextInput, TouchableOpacity } from 'react-native';
 import { act, create } from 'react-test-renderer';
 import { ServiciosSection } from '../ServiciosSection';
 import { ServicioItem } from '../../../models/Servicio';
@@ -11,8 +11,8 @@ jest.mock('../../../viewmodels/useServiciosViewModel', () => ({
 }));
 
 jest.mock('../ServicioCard', () => {
-  const ReactModule = require('react');
-  const { View: NativeView, Text: NativeText, TouchableOpacity: NativeButton } = require('react-native');
+  const ReactModule = jest.requireActual('react');
+  const { View: NativeView, Text: NativeText, TouchableOpacity: NativeButton } = jest.requireActual('react-native');
   return {
     ServicioCard: ({ item, onDetalle, onAgendar }: any) => ReactModule.createElement(
       NativeView,
@@ -31,8 +31,8 @@ jest.mock('../ServicioCard', () => {
 });
 
 jest.mock('../ServicioDetalleModal', () => {
-  const ReactModule = require('react');
-  const { View: NativeView, Text: NativeText, TouchableOpacity: NativeButton } = require('react-native');
+  const ReactModule = jest.requireActual('react');
+  const { View: NativeView, Text: NativeText, TouchableOpacity: NativeButton } = jest.requireActual('react-native');
   return {
     ServicioDetalleModal: ({ visible, servicio, onClose, onAgendar }: any) => ReactModule.createElement(
       NativeView,
@@ -50,8 +50,8 @@ jest.mock('../ServicioDetalleModal', () => {
 });
 
 jest.mock('@expo/vector-icons', () => {
-  const ReactModule = require('react');
-  const { Text: NativeText } = require('react-native');
+  const ReactModule = jest.requireActual('react');
+  const { Text: NativeText } = jest.requireActual('react-native');
   const Icon = (props: any) => ReactModule.createElement(NativeText, props, props.name);
   return { Feather: Icon, MaterialCommunityIcons: Icon };
 });
@@ -71,6 +71,7 @@ const baseViewModel = {
   categoriasDisponibles: ['Todos', 'Uñas'],
   servicios: [servicio],
   totalServicios: 1,
+  pagina: 1, totalPaginas: 1, cambiarPagina: jest.fn(), reintentar: jest.fn(),
   servicioSeleccionado: null,
   modalDetalleVisible: false,
   abrirDetalle: jest.fn(),
@@ -131,6 +132,18 @@ describe('HU-12 ServiciosSection', () => {
 
     expect(abrirDetalle).toHaveBeenCalledWith(servicio);
     expect(onAgendar).toHaveBeenCalledWith(servicio);
+    act(() => renderer.unmount());
+  });
+  it('mantiene los controles fijos en una sola lista virtualizada y permite cambiar de página', () => {
+    const cambiarPagina = jest.fn();
+    const { renderer } = renderSection({ pagina: 1, totalPaginas: 2, totalServicios: 7, cambiarPagina });
+    const lista = renderer.root.findByType(FlatList);
+    expect(lista.props.stickyHeaderIndices).toEqual([1]);
+    expect(lista.props.data).toHaveLength(2); // Controles y un servicio de la página simulada.
+    expect(textContent(renderer)).not.toContain('Bespoke');
+    const siguiente = renderer.root.findAllByType(TouchableOpacity).find((n: any) => n.findAllByType(Text).some((t: any) => t.props.children === 'Siguiente'));
+    act(() => siguiente.props.onPress());
+    expect(cambiarPagina).toHaveBeenCalledWith(2);
     act(() => renderer.unmount());
   });
 });

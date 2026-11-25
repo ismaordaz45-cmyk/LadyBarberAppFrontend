@@ -1,21 +1,20 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
-  ScrollView, 
-  TouchableOpacity, 
-  ActivityIndicator,
-  Switch
-} from 'react-native';
+import { useThemedStyles } from '../../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../../viewmodels/useAparienciaViewModel';
+import React, { useCallback, useRef } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Text } from '../../components/compartidos/TextoApp';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCitasViewModel, getMinFechaReserva } from '../../viewmodels/useCitasViewModel';
-import { resolveServicioImagenUrl } from '../../utils/resolveServicioImagenUrl';
-import { API_URL } from '../../services/api';
-import { useRouter } from 'expo-router';
-
-const API_BASE = API_URL.replace(/\/api\/?$/, '');
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { ListaCitas } from '../../components/citas/ListaCitas';
+import { CatalogoServiciosReserva } from '../../components/servicios/CatalogoServiciosReserva';
+import { useMisCitasViewModel } from '../../viewmodels/useMisCitasViewModel';
+import { dinero, fechaCita, HORARIOS } from '../../utils/citasPresentation';
+import { useAtrasCitas, useFlujoCitasViewModel } from '../../viewmodels/useFlujoCitasViewModel';
+import { SalidaApartadoModal } from '../../components/citas/SalidaApartadoModal';
+import { FiltroCitas } from '../../utils/listadoCitas';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { EncabezadoModulo } from '../../components/compartidos/EncabezadoModulo';
 
 const COLORS = {
   navy: '#1E3A5A',
@@ -30,8 +29,31 @@ const COLORS = {
 };
 
 export default function CitasScreen() {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   const router = useRouter();
+  const flujo = useFlujoCitasViewModel();
+  const { vista, verReservas } = flujo;
+  const reserva = useCitasViewModel(vista === 'agendar');
+  const params = useLocalSearchParams<{ vista?: string; servicioId?: string }>();
+  const entradaProcesada = useRef(false);
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    if (params.vista !== 'agendar') entradaProcesada.current = false;
+    if (params.vista === 'reservas') void Promise.resolve().then(() => {
+      if (active) { verReservas(); router.setParams({ vista: undefined }); }
+    });
+    if (params.vista === 'agendar' && !reserva.isLoadingCatalogo && !reserva.isGuardando) void Promise.resolve().then(() => {
+      if (active && !entradaProcesada.current) {
+        entradaProcesada.current = true;
+        flujo.agendar(reserva, typeof params.servicioId === 'string' ? params.servicioId : undefined);
+        router.setParams({ vista: undefined, servicioId: undefined });
+      }
+    });
+    return () => { active = false; };
+  }, [params.vista, params.servicioId, router, verReservas, reserva, flujo]));
   const {
+    citaCreadaId, nuevaCita, errorOcupacion, actualizarHorarios, catalogoServicios, reintentarCatalogo,
     activeStep,
     isLoadingCatalogo,
     isGuardando,
@@ -51,30 +73,21 @@ export default function CitasScreen() {
     cargandoEstilistas,
     cargandoOcupacion,
     timeLeft,
-    terminosAceptados,
-    setTerminosAceptados,
     nextStep1,
     nextStep2,
     handleBack,
-    handlePagarAnticipo
-  } = useCitasViewModel();
+    handlePagarAnticipo,
+    estadoPago,
+    consultandoPago,
+    errorPago,
+    consultarPago,
+    pagoAprobado,
+  } = reserva;
+  const salir = () => flujo.solicitarSalida(reserva);
+  useAtrasCitas(vista === 'agendar', salir);
 
-  if (isLoadingCatalogo) {
-    return (
-      <SafeAreaView style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={COLORS.navy} />
-        <Text style={{ marginTop: 10, color: COLORS.navy }}>Cargando catálogo...</Text>
-      </SafeAreaView>
-    );
-  }
-
-  if (errorMsg) {
-    return (
-      <SafeAreaView style={styles.centerContainer}>
-        <Text style={{ color: COLORS.error, fontWeight: 'bold' }}>{errorMsg}</Text>
-      </SafeAreaView>
-    );
-  }
+  if (vista === 'reservas') return <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}><MisReservas filtroInicial={flujo.filtroInicial}
+    onAgendar={() => flujo.agendar(reserva)} /></SafeAreaView>;
 
   // Helper arrays for dates
   const generateDates = () => {
@@ -101,38 +114,8 @@ export default function CitasScreen() {
   };
 
   const renderStep1 = () => (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
-      <Text style={styles.sectionTitle}>Selecciona tus servicios</Text>
-      {serviciosApi.map(srv => {
-        const isSelected = serviciosSel.includes(srv.id);
-        return (
-          <TouchableOpacity 
-            key={srv.id} 
-            style={[styles.serviceCard, isSelected && styles.serviceCardSelected]}
-            onPress={() => toggleServicio(srv.id)}
-          >
-            <View style={styles.serviceInfo}>
-              <Text style={styles.serviceName}>{srv.nombre}</Text>
-              <Text style={styles.serviceMeta}>{srv.duracionMin} min • ${srv.precioMXN}</Text>
-            </View>
-            <View style={styles.checkbox}>
-              {isSelected && <Ionicons name="checkmark" size={16} color="#FFF" />}
-            </View>
-          </TouchableOpacity>
-        );
-      })}
-
-      <View style={styles.summaryFooter}>
-        <View>
-          <Text style={styles.summaryText}>Total: {duracionYPrecioTotal.duracion} min</Text>
-          <Text style={styles.summaryPrice}>${duracionYPrecioTotal.precio} MXN</Text>
-        </View>
-        <TouchableOpacity style={styles.btnPrimary} onPress={nextStep1}>
-          <Text style={styles.btnText}>Continuar</Text>
-          <Feather name="arrow-right" size={16} color="#FFF" />
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+    <CatalogoServiciosReserva catalogo={catalogoServicios} isLoading={isLoadingCatalogo} error={errorMsg}
+      onReintentar={reintentarCatalogo} onSeleccionar={toggleServicio} onContinuar={nextStep1} total={duracionYPrecioTotal} />
   );
 
   const renderStep2 = () => {
@@ -140,13 +123,13 @@ export default function CitasScreen() {
     return (
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-          <Feather name="arrow-left" size={20} color={COLORS.navy} />
+          <Feather name="arrow-left" size={20} color={apariencia.color(COLORS.navy)} />
           <Text style={styles.backText}>Volver a servicios</Text>
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>1. Elige a tu especialista</Text>
         {cargandoEstilistas ? (
-          <ActivityIndicator color={COLORS.navy} style={{ marginVertical: 20 }} />
+          <ActivityIndicator color={apariencia.color(COLORS.navy)} style={{ marginVertical: 20 }} />
         ) : empleadasApi.length === 0 ? (
           <Text style={styles.emptyText}>No hay estilistas disponibles para la combinación de servicios seleccionada.</Text>
         ) : (
@@ -160,7 +143,7 @@ export default function CitasScreen() {
                   onPress={() => setEmpleadaId(emp.id)}
                 >
                   <View style={styles.empAvatar}>
-                    <Ionicons name="person" size={24} color={isSelected ? COLORS.navy : COLORS.muted} />
+                    <Ionicons name="person" size={24} color={apariencia.color(isSelected ? COLORS.navy : COLORS.muted)} />
                   </View>
                   <Text style={[styles.empName, isSelected && styles.empNameSelected]}>{emp.nombre}</Text>
                 </TouchableOpacity>
@@ -188,7 +171,9 @@ export default function CitasScreen() {
 
         <Text style={styles.sectionTitle}>3. Elige el horario</Text>
         {cargandoOcupacion ? (
-          <ActivityIndicator color={COLORS.navy} style={{ marginVertical: 20 }} />
+          <ActivityIndicator color={apariencia.color(COLORS.navy)} style={{ marginVertical: 20 }} />
+        ) : errorOcupacion ? (
+          <View><Text style={{ color: apariencia.color(COLORS.error) }}>{errorOcupacion}</Text><TouchableOpacity onPress={actualizarHorarios}><Text style={styles.backText}>Reintentar disponibilidad</Text></TouchableOpacity></View>
         ) : !fecha || !empleadaId ? (
           <Text style={styles.emptyText}>Selecciona estilista y fecha primero.</Text>
         ) : slotsConEstado.length === 0 ? (
@@ -196,36 +181,45 @@ export default function CitasScreen() {
         ) : (
           <View style={styles.slotsGrid}>
             {slotsConEstado.map(slot => {
-              const isSelected = horario === slot.hora;
+              const isSelected = horario === slot.hora && slot.estado === 'disponible';
               const isOcupado = slot.estado !== 'disponible';
+              const visual = HORARIOS[slot.estado];
               return (
                 <TouchableOpacity
                   key={slot.hora}
                   disabled={isOcupado}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${slot.hora}, ${visual.label}`}
+                  accessibilityState={{ disabled: isOcupado, selected: isSelected }}
                   style={[
                     styles.slotCard,
+                    { borderColor: apariencia.color(visual.color, 'border'), backgroundColor: apariencia.color(visual.background, 'background') },
                     isSelected && styles.slotCardSelected,
-                    isOcupado && styles.slotCardOcupado
                   ]}
                   onPress={() => setHorario(slot.hora)}
                 >
                   <Text style={[
                     styles.slotText,
+                    { color: apariencia.color(visual.color) },
                     isSelected && styles.slotTextSelected,
-                    isOcupado && styles.slotTextOcupado
                   ]}>{slot.hora}</Text>
+                  <Text style={{ fontSize: 9, marginTop: 4, color: apariencia.color(isSelected ? '#FFF' : visual.color) }}>{isSelected ? 'Seleccionado' : visual.label}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
         )}
 
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 18 }}>
+          {(['disponible', 'apartado', 'confirmado'] as const).map(estado => <Text key={estado} style={{ color: apariencia.color(HORARIOS[estado].color), fontSize: 12 }}>● {HORARIOS[estado].label}</Text>)}
+        </View>
+
         <TouchableOpacity 
           style={[styles.btnPrimary, { marginTop: 30 }, isGuardando && { opacity: 0.7 }]} 
           onPress={nextStep2}
-          disabled={isGuardando}
+          disabled={isGuardando || cargandoOcupacion || Boolean(errorOcupacion) || !horario}
         >
-          {isGuardando ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>Apartar Horario</Text>}
+          {isGuardando ? <ActivityIndicator color={apariencia.color("#FFF")} /> : <Text style={styles.btnText}>Apartar Horario</Text>}
         </TouchableOpacity>
       </ScrollView>
     );
@@ -233,22 +227,26 @@ export default function CitasScreen() {
 
   const renderStep3 = () => (
     <ScrollView contentContainerStyle={styles.scrollContent}>
-       <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-          <Feather name="arrow-left" size={20} color={COLORS.navy} />
-          <Text style={styles.backText}>Cancelar y volver</Text>
-        </TouchableOpacity>
+       {!pagoAprobado && <TouchableOpacity style={styles.backBtn} onPress={salir}>
+          <Feather name="arrow-left" size={20} color={apariencia.color(COLORS.navy)} />
+          <Text style={styles.backText}>Volver a mis citas</Text>
+        </TouchableOpacity>}
 
       <View style={styles.successHeader}>
-        <Ionicons name="checkmark-circle" size={60} color={COLORS.success} />
-        <Text style={styles.successTitle}>¡Horario Apartado!</Text>
-        <Text style={styles.successSub}>Tienes {formatTimeLeft()} para confirmar tu pago del 50% y asegurar la cita.</Text>
+        <Ionicons name="checkmark-circle" size={60} color={apariencia.color(COLORS.success)} />
+        <Text style={styles.successTitle}>{pagoAprobado ? '¡Anticipo aprobado!' : '¡Horario Apartado!'}</Text>
+        <Text style={styles.successSub}>
+          {pagoAprobado ? 'Tu pago fue verificado. La cita está confirmada.'
+            : timeLeft > 0 ? `Tienes ${formatTimeLeft()} para pagar el anticipo del 50% y asegurar la cita.`
+            : 'El plazo de pago terminó. Si ya pagaste, consulta el estado antes de reservar nuevamente.'}
+        </Text>
       </View>
 
       <View style={styles.summaryBox}>
         <Text style={styles.summaryBoxTitle}>Resumen de tu cita</Text>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Fecha:</Text>
-          <Text style={styles.summaryVal}>{fecha}</Text>
+          <Text style={styles.summaryVal}>{fechaCita(fecha)}</Text>
         </View>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Hora:</Text>
@@ -256,62 +254,79 @@ export default function CitasScreen() {
         </View>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Servicios:</Text>
-          <Text style={styles.summaryVal}>{serviciosSel.length}</Text>
+          <Text style={[styles.summaryVal, { flex: 1, textAlign: 'right', marginLeft: 16 }]}>{serviciosApi.filter(s => serviciosSel.includes(s.id)).map(s => s.nombre).join(', ')}</Text>
         </View>
+        <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Especialista:</Text><Text style={styles.summaryVal}>{empleadasApi.find(e => e.id === empleadaId)?.nombre}</Text></View>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Total:</Text>
-          <Text style={styles.summaryVal}>${duracionYPrecioTotal.precio} MXN</Text>
+          <Text style={styles.summaryVal}>{dinero(estadoPago?.precioFinal ?? duracionYPrecioTotal.precio)}</Text>
         </View>
-        <View style={[styles.summaryRow, { borderTopWidth: 1, borderColor: '#EEE', paddingTop: 10, marginTop: 10 }]}>
-          <Text style={[styles.summaryLabel, { color: COLORS.navy, fontWeight: 'bold' }]}>Anticipo a pagar (50%):</Text>
-          <Text style={[styles.summaryVal, { color: COLORS.blue, fontWeight: 'bold', fontSize: 18 }]}>
-            ${(duracionYPrecioTotal.precio / 2).toFixed(2)} MXN
+        <View style={[styles.summaryRow, { borderTopWidth: 1, borderColor: apariencia.color('#EEE', 'border'), paddingTop: 10, marginTop: 10 }]}>
+          <Text style={[styles.summaryLabel, { color: apariencia.color(COLORS.navy), fontWeight: 'bold' }]}>{pagoAprobado ? 'Anticipo aprobado (50%):' : 'Anticipo a pagar (50%):'}</Text>
+          <Text style={[styles.summaryVal, { color: apariencia.color(COLORS.blue), fontWeight: 'bold', fontSize: 18 }]}>
+            {dinero(Math.round(Number(estadoPago?.precioFinal ?? duracionYPrecioTotal.precio) * 50) / 100)}
           </Text>
         </View>
       </View>
 
-      <View style={styles.termsBox}>
+      <View style={styles.summaryBox}>
+        <Text style={styles.summaryBoxTitle}>Estado del pago</Text>
+        <Text accessibilityLiveRegion="polite" style={styles.summaryLabel}>
+          {pagoAprobado ? 'Aprobado'
+            : estadoPago?.paymentStatus === 'rejected' ? 'Pago rechazado. Revisa el motivo en Mercado Pago.'
+            : ['pending', 'in_process', 'authorized'].includes(estadoPago?.paymentStatus || '') ? 'Pago pendiente de confirmación.'
+            : estadoPago?.paymentStatus ? `Estado recibido: ${estadoPago.paymentStatus}`
+            : 'Aún no hay un pago confirmado.'}
+        </Text>
+        {errorPago && <Text style={{ color: apariencia.color(COLORS.error), marginTop: 10 }}>{errorPago}</Text>}
+        {!pagoAprobado && <TouchableOpacity style={[styles.btnPrimary, { marginTop: 14 }]} onPress={consultarPago} disabled={consultandoPago}>
+          {consultandoPago ? <ActivityIndicator color={apariencia.color("#FFF")} /> : <Text style={styles.btnText}>Consultar estado del pago</Text>}
+        </TouchableOpacity>}
+      </View>
+
+      {pagoAprobado && <View style={{ gap: 14, marginBottom: 20 }}>
+        <TouchableOpacity style={styles.btnPrimary} onPress={() => router.push({ pathname: '/cita/[id]', params: { id: citaCreadaId } })}><Text style={styles.btnText}>Ver cita y comprobante PDF</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.btnPrimary} onPress={() => verReservas()}><Text style={styles.btnText}>Ver mis próximas citas</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.backBtn} onPress={() => nuevaCita()}><Text style={styles.backText}>＋ Agendar otra cita</Text></TouchableOpacity>
+      </View>}
+
+      {!pagoAprobado && <View style={styles.termsBox}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 12, color: COLORS.muted }}>
-            Acepto las políticas de cancelación. Entiendo que el anticipo no es reembolsable en caso de no asistir.
+          <Text style={{ fontSize: 12, color: apariencia.color(COLORS.muted) }}>
+            A esta reserva le aplican los términos y las políticas de reservación y cancelación.
           </Text>
           <View style={{ flexDirection: 'row', marginTop: 5 }}>
             <TouchableOpacity onPress={() => router.push('/terminos')}>
-              <Text style={{ fontSize: 12, color: COLORS.blue, fontWeight: '700' }}>Ver términos</Text>
+              <Text style={{ fontSize: 12, color: apariencia.color(COLORS.blue), fontWeight: '700' }}>Ver términos</Text>
             </TouchableOpacity>
-            <Text style={{ fontSize: 12, color: COLORS.muted }}> · </Text>
+            <Text style={{ fontSize: 12, color: apariencia.color(COLORS.muted) }}> · </Text>
             <TouchableOpacity onPress={() => router.push('/privacidad')}>
-              <Text style={{ fontSize: 12, color: COLORS.blue, fontWeight: '700' }}>Privacidad</Text>
+              <Text style={{ fontSize: 12, color: apariencia.color(COLORS.blue), fontWeight: '700' }}>Privacidad</Text>
             </TouchableOpacity>
           </View>
         </View>
-        <Switch 
-          value={terminosAceptados} 
-          onValueChange={setTerminosAceptados}
-          trackColor={{ false: "#D1D5DB", true: COLORS.blue }}
-          thumbColor="#FFF"
-        />
-      </View>
+      </View>}
 
-      <TouchableOpacity 
-        style={[styles.btnPrimary, (!terminosAceptados || isGuardando) && { opacity: 0.5 }]} 
+      {!pagoAprobado && <TouchableOpacity
+        style={[styles.btnPrimary, (isGuardando || timeLeft <= 0) && { opacity: 0.5 }]}
         onPress={handlePagarAnticipo}
-        disabled={!terminosAceptados || isGuardando}
+        disabled={isGuardando || timeLeft <= 0}
       >
-        {isGuardando ? <ActivityIndicator color="#FFF" /> : (
+        {isGuardando ? <ActivityIndicator color={apariencia.color("#FFF")} /> : (
           <>
-            <MaterialCommunityIcons name="credit-card-outline" size={20} color="#FFF" style={{marginRight: 8}} />
+            <MaterialCommunityIcons name="credit-card-outline" size={20} color={apariencia.color("#FFF")} style={{marginRight: 8}} />
             <Text style={styles.btnText}>Pagar con Mercado Pago</Text>
           </>
         )}
-      </TouchableOpacity>
+      </TouchableOpacity>}
     </ScrollView>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Agendar Cita</Text>
+        <TouchableOpacity accessibilityRole="button" disabled={isGuardando} onPress={salir}><Text style={styles.backText}>‹ Mis citas</Text></TouchableOpacity>
+        <Text style={styles.title}>Agendar cita</Text>
         <View style={styles.stepperDots}>
           <View style={[styles.dot, activeStep >= 0 && styles.dotActive]} />
           <View style={[styles.dot, activeStep >= 1 && styles.dotActive]} />
@@ -321,13 +336,19 @@ export default function CitasScreen() {
       {activeStep === 0 && renderStep1()}
       {activeStep === 1 && renderStep2()}
       {activeStep === 2 && renderStep3()}
+      <SalidaApartadoModal visible={flujo.mostrarSalida} cancelando={flujo.cancelando} error={flujo.errorSalida}
+        onConservar={flujo.conservar} onCancelar={() => void flujo.cancelar(reserva)} onContinuar={flujo.seguirPagando} />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+function MisReservas({ onAgendar, filtroInicial }: { onAgendar: () => void; filtroInicial: FiltroCitas }) {
+  const vm = useMisCitasViewModel('proximas', filtroInicial);
+  return <ListaCitas vm={vm} nuevaCita={onAgendar} encabezado={<EncabezadoModulo titulo="Tus próximas citas" />} />;
+}
+
+const baseStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bg },
   header: {
     padding: 24,
     backgroundColor: '#FFFFFF',
@@ -337,34 +358,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center'
   },
-  title: { fontSize: 22, fontWeight: '800', color: COLORS.navy },
+  title: { fontSize: 18, fontWeight: '800', color: COLORS.navy },
   stepperDots: { flexDirection: 'row', gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#E2E8F0' },
   dotActive: { backgroundColor: COLORS.navy },
   scrollContent: { padding: 20, paddingBottom: 100 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.navy, marginBottom: 12, marginTop: 10 },
   
-  // Step 1
-  serviceCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF',
-    padding: 16, borderRadius: 12, marginBottom: 10,
-    borderWidth: 1, borderColor: COLORS.border
-  },
-  serviceCardSelected: { borderColor: COLORS.navy, backgroundColor: '#F0F4FA' },
-  serviceInfo: { flex: 1 },
-  serviceName: { fontSize: 15, fontWeight: '600', color: COLORS.navy, marginBottom: 4 },
-  serviceMeta: { fontSize: 13, color: COLORS.muted },
-  checkbox: {
-    width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: '#CBD5E1',
-    justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF'
-  },
-  summaryFooter: {
-    marginTop: 20, padding: 20, backgroundColor: '#FFF', borderRadius: 16,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2
-  },
-  summaryText: { fontSize: 12, color: COLORS.muted, fontWeight: '500' },
-  summaryPrice: { fontSize: 18, fontWeight: '800', color: COLORS.navy },
   btnPrimary: {
     backgroundColor: COLORS.navy, paddingVertical: 14, paddingHorizontal: 24,
     borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center'

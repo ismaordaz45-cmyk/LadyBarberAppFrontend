@@ -1,13 +1,8 @@
+import { useThemedStyles } from '../../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../../viewmodels/useAparienciaViewModel';
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Image,
-} from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { Text } from '../compartidos/TextoApp';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRecuperarPasswordViewModel } from '../../viewmodels/useRecuperarPasswordViewModel';
 import { BarberActionOverlay } from '../compartidos/BarberActionOverlay';
@@ -43,6 +38,8 @@ export const RecuperarPasswordForm: React.FC<RecuperarPasswordFormProps> = ({
   onBackToLogin,
   onSuccess,
 }) => {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   const {
     correo,
     setCorreo,
@@ -121,7 +118,7 @@ export const RecuperarPasswordForm: React.FC<RecuperarPasswordFormProps> = ({
             style={styles.backButton}
             activeOpacity={0.7}
           >
-            <Feather name="chevron-left" size={16} color={COLORS.primaryBlue} />
+            <Feather name="chevron-left" size={16} color={apariencia.color(COLORS.primaryBlue)} />
             <Text style={styles.backButtonText}>Volver al inicio de sesión</Text>
           </TouchableOpacity>
         )}
@@ -131,7 +128,7 @@ export const RecuperarPasswordForm: React.FC<RecuperarPasswordFormProps> = ({
           <MaterialCommunityIcons
             name="lock-reset"
             size={30}
-            color={COLORS.linkOrange}
+            color={apariencia.color(COLORS.linkOrange)}
             style={styles.titleIcon}
           />
           <Text style={styles.titleText}>Recuperar contraseña</Text>
@@ -144,7 +141,7 @@ export const RecuperarPasswordForm: React.FC<RecuperarPasswordFormProps> = ({
         {/* Banner de Error */}
         {error ? (
           <View style={styles.errorAlert}>
-            <Feather name="alert-circle" size={18} color="#DC2626" style={styles.alertIcon} />
+            <Feather name="alert-circle" size={18} color={apariencia.color("#DC2626")} style={styles.alertIcon} />
             <Text style={styles.errorAlertText}>{error}</Text>
           </View>
         ) : null}
@@ -153,7 +150,7 @@ export const RecuperarPasswordForm: React.FC<RecuperarPasswordFormProps> = ({
         {enviado ? (
           <View style={styles.successCard}>
             <View style={styles.successAlert}>
-              <Feather name="check-circle" size={20} color="#16A34A" style={styles.alertIcon} />
+              <Feather name="check-circle" size={20} color={apariencia.color("#16A34A")} style={styles.alertIcon} />
               <View style={styles.successTextContainer}>
                 <Text style={styles.successAlertTitle}>Solicitud enviada</Text>
                 <Text style={styles.successAlertText}>
@@ -181,19 +178,19 @@ export const RecuperarPasswordForm: React.FC<RecuperarPasswordFormProps> = ({
                 <Feather
                   name="mail"
                   size={18}
-                  color={COLORS.textMuted}
+                  color={apariencia.color(COLORS.textMuted)}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="ejemplo@correo.com"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={apariencia.color("#94A3B8")}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={correo}
                   onChangeText={setCorreo}
-                  editable={!isLoading}
+                  editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
                 />
               </View>
             </View>
@@ -206,7 +203,7 @@ export const RecuperarPasswordForm: React.FC<RecuperarPasswordFormProps> = ({
             >
               {isLoading ? (
                 <View style={styles.loadingRow}>
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color={apariencia.color("#FFFFFF")} size="small" />
                   <Text style={styles.primaryBtnText}>Enviando instrucciones...</Text>
                 </View>
               ) : (
@@ -238,7 +235,7 @@ export const RecuperarPasswordForm: React.FC<RecuperarPasswordFormProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   container: {
     width: '100%',
     backgroundColor: COLORS.white,

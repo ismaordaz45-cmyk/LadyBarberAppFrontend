@@ -1,13 +1,8 @@
+import { useThemedStyles } from '../../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../../viewmodels/useAparienciaViewModel';
 import React from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-} from 'react-native';
+import { Modal, View, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import { Text } from '../compartidos/TextoApp';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ServicioItem } from '../../models/Servicio';
 import { resolveServicioImagenUrl } from '../../utils/resolveServicioImagenUrl';
@@ -20,6 +15,7 @@ interface ServicioDetalleModalProps {
   servicio: ServicioItem | null;
   onClose: () => void;
   onAgendar: (servicio: ServicioItem) => void;
+  actionLabel?: string;
 }
 
 export const ServicioDetalleModal: React.FC<ServicioDetalleModalProps> = ({
@@ -27,7 +23,10 @@ export const ServicioDetalleModal: React.FC<ServicioDetalleModalProps> = ({
   servicio,
   onClose,
   onAgendar,
+  actionLabel = 'Agendar este servicio',
 }) => {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   if (!servicio) return null;
 
   const imagenResuelta = resolveServicioImagenUrl(servicio.imagenUrl, API_BASE);
@@ -46,32 +45,32 @@ export const ServicioDetalleModal: React.FC<ServicioDetalleModalProps> = ({
               />
             ) : (
               <View style={styles.imagePlaceholder}>
-                <MaterialCommunityIcons name="content-cut" size={48} color="rgba(255,255,255,0.5)" />
+                <MaterialCommunityIcons name="content-cut" size={48} color={apariencia.color("rgba(255,255,255,0.5)")} />
               </View>
             )}
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Feather name="x" size={18} color="#0F172A" />
+              <Feather name="x" size={18} color={apariencia.color("#0F172A")} />
             </TouchableOpacity>
 
             {/* Badge de categoría sobre la imagen */}
-            <View style={styles.badge}>
+            {!!servicio.categoria && <View style={styles.badge}>
               <Text style={styles.badgeText}>{servicio.categoria}</Text>
-            </View>
+            </View>}
           </View>
 
           <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {/* Meta tags: duración y categoría */}
             <View style={styles.metaRow}>
               <View style={styles.metaChip}>
-                <Feather name="clock" size={12} color="#1E293B" style={{ marginRight: 4 }} />
+                <Feather name="clock" size={12} color={apariencia.color("#1E293B")} style={{ marginRight: 4 }} />
                 <Text style={styles.metaChipText}>
                   {servicio.duracionMin > 0 ? `${servicio.duracionMin} minutos` : 'Consultar'}
                 </Text>
               </View>
-              <View style={styles.metaChip}>
-                <Feather name="tag" size={12} color="#1E293B" style={{ marginRight: 4 }} />
+              {!!servicio.categoria && <View style={styles.metaChip}>
+                <Feather name="tag" size={12} color={apariencia.color("#1E293B")} style={{ marginRight: 4 }} />
                 <Text style={styles.metaChipText}>{servicio.categoria}</Text>
-              </View>
+              </View>}
             </View>
 
             {/* Título y Precio */}
@@ -99,8 +98,8 @@ export const ServicioDetalleModal: React.FC<ServicioDetalleModalProps> = ({
               }}
               activeOpacity={0.85}
             >
-              <Ionicons name="calendar-outline" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
-              <Text style={styles.agendarBtnText}>Agendar este servicio</Text>
+              <Ionicons name="calendar-outline" size={16} color={apariencia.color("#FFFFFF")} style={{ marginRight: 8 }} />
+              <Text style={styles.agendarBtnText}>{actionLabel}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -109,7 +108,7 @@ export const ServicioDetalleModal: React.FC<ServicioDetalleModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.55)',

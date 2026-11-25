@@ -1,12 +1,8 @@
+import { useThemedStyles } from '../../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../../viewmodels/useAparienciaViewModel';
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { Text } from '../compartidos/TextoApp';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useRegistroViewModel } from '../../viewmodels/useRegistroViewModel';
@@ -56,6 +52,8 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
   onBackToLogin,
   onSuccess,
 }) => {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   const router = useRouter();
   const {
     formData,
@@ -127,14 +125,14 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             style={styles.circleBackBtn}
             activeOpacity={0.7}
           >
-            <Feather name="arrow-left" size={18} color={COLORS.textDark} />
+            <Feather name="arrow-left" size={18} color={apariencia.color(COLORS.textDark)} />
           </TouchableOpacity>
         ) : (
           <View style={styles.backPlaceholder} />
         )}
 
         <View style={styles.brandPill}>
-          <Text style={styles.brandPillText}>LADY BARBER ITZÁ D'M</Text>
+          <Text style={styles.brandPillText}>{"LADY BARBER ITZÁ D'M"}</Text>
         </View>
 
         <View style={styles.topRightOrnament}>
@@ -153,7 +151,7 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
         {/* Banner de Error */}
         {error ? (
           <View style={styles.errorBanner}>
-            <Feather name="alert-circle" size={17} color={COLORS.errorText} style={styles.alertIcon} />
+            <Feather name="alert-circle" size={17} color={apariencia.color(COLORS.errorText)} style={styles.alertIcon} />
             <Text style={styles.errorBannerText}>{error}</Text>
           </View>
         ) : null}
@@ -162,7 +160,7 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
         {exitoso ? (
           <View style={styles.successContainer}>
             <View style={styles.successIconCircle}>
-              <Feather name="check" size={26} color={COLORS.successText} />
+              <Feather name="check" size={26} color={apariencia.color(COLORS.successText)} />
             </View>
             <Text style={styles.successTitle}>¡Cuenta creada exitosamente!</Text>
             <Text style={styles.successDescription}>
@@ -184,16 +182,16 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             {/* Campo 1: Nombre */}
             <View style={styles.fieldGroup}>
               <View style={styles.labelRow}>
-                <Feather name="user" size={14} color={COLORS.textMuted} style={styles.labelIcon} />
+                <Feather name="user" size={14} color={apariencia.color(COLORS.textMuted)} style={styles.labelIcon} />
                 <Text style={styles.labelText}>Nombre completo *</Text>
               </View>
               <TextInput
                 style={styles.inputBox}
                 placeholder="Ej. Mariana Morales R."
-                placeholderTextColor={COLORS.placeholder}
+                placeholderTextColor={apariencia.color(COLORS.placeholder)}
                 value={formData.nombre}
                 onChangeText={(val) => updateField('nombre', val)}
-                editable={!isLoading}
+                editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
               />
             </View>
 
@@ -201,31 +199,31 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             <View style={styles.twoColumnRow}>
               <View style={[styles.fieldGroup, styles.columnLeft]}>
                 <View style={styles.labelRow}>
-                  <Feather name="user" size={14} color={COLORS.textMuted} style={styles.labelIcon} />
+                  <Feather name="user" size={14} color={apariencia.color(COLORS.textMuted)} style={styles.labelIcon} />
                   <Text style={styles.labelText}>Apellido paterno</Text>
                 </View>
                 <TextInput
                   style={styles.inputBox}
                   placeholder="Paterno"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={apariencia.color(COLORS.placeholder)}
                   value={formData.apellidoPaterno}
                   onChangeText={(val) => updateField('apellidoPaterno', val)}
-                  editable={!isLoading}
+                  editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
                 />
               </View>
 
               <View style={[styles.fieldGroup, styles.columnRight]}>
                 <View style={styles.labelRow}>
-                  <Feather name="user" size={14} color={COLORS.textMuted} style={styles.labelIcon} />
+                  <Feather name="user" size={14} color={apariencia.color(COLORS.textMuted)} style={styles.labelIcon} />
                   <Text style={styles.labelText}>Apellido materno</Text>
                 </View>
                 <TextInput
                   style={styles.inputBox}
                   placeholder="Materno"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={apariencia.color(COLORS.placeholder)}
                   value={formData.apellidoMaterno}
                   onChangeText={(val) => updateField('apellidoMaterno', val)}
-                  editable={!isLoading}
+                  editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
                 />
               </View>
             </View>
@@ -233,44 +231,44 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             {/* Campo 2: Correo electrónico */}
             <View style={styles.fieldGroup}>
               <View style={styles.labelRow}>
-                <Feather name="mail" size={14} color={COLORS.textMuted} style={styles.labelIcon} />
+                <Feather name="mail" size={14} color={apariencia.color(COLORS.textMuted)} style={styles.labelIcon} />
                 <Text style={styles.labelText}>Correo electrónico *</Text>
               </View>
               <TextInput
                 style={styles.inputBox}
                 placeholder="tu.correo@ejemplo.com"
-                placeholderTextColor={COLORS.placeholder}
+                placeholderTextColor={apariencia.color(COLORS.placeholder)}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
                 value={formData.correo}
                 onChangeText={(val) => updateField('correo', val)}
-                editable={!isLoading}
+                editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
               />
             </View>
 
             {/* Campo 3: Teléfono / WhatsApp con prefijo +52 */}
             <View style={styles.fieldGroup}>
               <View style={styles.labelRow}>
-                <Feather name="phone" size={14} color={COLORS.textMuted} style={styles.labelIcon} />
+                <Feather name="phone" size={14} color={apariencia.color(COLORS.textMuted)} style={styles.labelIcon} />
                 <Text style={styles.labelText}>Teléfono / WhatsApp</Text>
               </View>
               <View style={styles.phoneInputRow}>
                 <View style={styles.countryCodeBox}>
                   <Text style={styles.flagEmoji}>🇲🇽</Text>
                   <Text style={styles.countryCodeText}>+52</Text>
-                  <Feather name="chevron-down" size={13} color={COLORS.textMuted} style={styles.chevronIcon} />
+                  <Feather name="chevron-down" size={13} color={apariencia.color(COLORS.textMuted)} style={styles.chevronIcon} />
                 </View>
 
                 <TextInput
                   style={[styles.inputBox, styles.phoneInputBox]}
                   placeholder="55 1234 5678"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={apariencia.color(COLORS.placeholder)}
                   keyboardType="numeric"
                   maxLength={10}
                   value={formData.telefono}
                   onChangeText={(val) => updateField('telefono', val)}
-                  editable={!isLoading}
+                  editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
                 />
               </View>
             </View>
@@ -278,20 +276,20 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             {/* Campo 4: Contraseña */}
             <View style={styles.fieldGroup}>
               <View style={styles.labelRow}>
-                <Feather name="lock" size={14} color={COLORS.textMuted} style={styles.labelIcon} />
+                <Feather name="lock" size={14} color={apariencia.color(COLORS.textMuted)} style={styles.labelIcon} />
                 <Text style={styles.labelText}>Contraseña *</Text>
               </View>
               <View style={styles.inputWithIconRow}>
                 <TextInput
                   style={styles.inputInner}
                   placeholder="Mínimo 8 carac."
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={apariencia.color(COLORS.placeholder)}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={formData.password}
                   onChangeText={(val) => updateField('password', val)}
-                  editable={!isLoading}
+                  editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
                 />
                 <TouchableOpacity
                   onPress={toggleShowPassword}
@@ -301,7 +299,7 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
                   <Feather
                     name={showPassword ? 'eye-off' : 'eye'}
                     size={17}
-                    color={COLORS.placeholder}
+                    color={apariencia.color(COLORS.placeholder)}
                   />
                 </TouchableOpacity>
               </View>
@@ -310,7 +308,7 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             {/* Campo 5: Confirmar Contraseña */}
             <View style={styles.fieldGroup}>
               <View style={styles.labelRow}>
-                <Feather name="shield" size={14} color={COLORS.textMuted} style={styles.labelIcon} />
+                <Feather name="shield" size={14} color={apariencia.color(COLORS.textMuted)} style={styles.labelIcon} />
                 <Text style={styles.labelText}>Confirmar *</Text>
               </View>
               <View
@@ -323,13 +321,13 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
                 <TextInput
                   style={styles.inputInner}
                   placeholder="Repite clave"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={apariencia.color(COLORS.placeholder)}
                   secureTextEntry={!showPasswordConfirm}
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={formData.passwordConfirm}
                   onChangeText={(val) => updateField('passwordConfirm', val)}
-                  editable={!isLoading}
+                  editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
                 />
                 <TouchableOpacity
                   onPress={toggleShowPasswordConfirm}
@@ -339,7 +337,7 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
                   <Feather
                     name={showPasswordConfirm ? 'eye-off' : 'eye'}
                     size={17}
-                    color={COLORS.placeholder}
+                    color={apariencia.color(COLORS.placeholder)}
                   />
                 </TouchableOpacity>
               </View>
@@ -376,7 +374,7 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             <View style={styles.recoveryCard}>
               <View style={styles.recoveryHeaderRow}>
                 <View style={styles.recoveryHeaderLeft}>
-                  <Feather name="shield" size={15} color={COLORS.amberShield} style={styles.recoveryShieldIcon} />
+                  <Feather name="shield" size={15} color={apariencia.color(COLORS.amberShield)} style={styles.recoveryShieldIcon} />
                   <Text style={styles.recoveryHeaderTitle}>Recuperación de cuenta</Text>
                 </View>
                 <View style={styles.secureBadge}>
@@ -389,12 +387,12 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
                 <TextInput
                   style={styles.recoveryInputInner}
                   placeholder="¿Nombre de tu mascota?"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={apariencia.color(COLORS.placeholder)}
                   value={formData.preguntaSecreta}
                   onChangeText={(val) => updateField('preguntaSecreta', val)}
-                  editable={!isLoading}
+                  editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
                 />
-                <Feather name="chevron-down" size={15} color={COLORS.placeholder} />
+                <Feather name="chevron-down" size={15} color={apariencia.color(COLORS.placeholder)} />
               </View>
 
               {/* Respuesta secreta */}
@@ -402,11 +400,11 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
                 <TextInput
                   style={styles.recoveryInputInner}
                   placeholder="Tu respuesta secreta"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={apariencia.color(COLORS.placeholder)}
                   secureTextEntry
                   value={formData.respuestaSecreta}
                   onChangeText={(val) => updateField('respuestaSecreta', val)}
-                  editable={!isLoading}
+                  editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
                 />
               </View>
             </View>
@@ -414,7 +412,7 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             {/* Banner de error visible directamente sobre el botón para rápida visualización */}
             {error ? (
               <View style={styles.inlineErrorBanner}>
-                <Feather name="alert-circle" size={16} color={COLORS.errorText} style={styles.alertIcon} />
+                <Feather name="alert-circle" size={16} color={apariencia.color(COLORS.errorText)} style={styles.alertIcon} />
                 <Text style={styles.inlineErrorText}>{error}</Text>
               </View>
             ) : null}
@@ -431,7 +429,7 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
                 <Feather
                   name={legalAccepted ? 'check-square' : 'square'}
                   size={21}
-                  color={legalAccepted ? COLORS.primaryNavy : COLORS.placeholder}
+                  color={apariencia.color(legalAccepted ? COLORS.primaryNavy : COLORS.placeholder)}
                 />
               </TouchableOpacity>
               <View style={styles.legalTextContainer}>
@@ -462,13 +460,13 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
             >
               {isLoading ? (
                 <View style={styles.loadingRow}>
-                  <ActivityIndicator color={COLORS.white} size="small" />
+                  <ActivityIndicator color={apariencia.color(COLORS.white)} size="small" />
                   <Text style={styles.primaryBtnText}>Creando cuenta...</Text>
                 </View>
               ) : (
                 <View style={styles.btnContent}>
                   <Text style={styles.primaryBtnText}>Crear Cuenta</Text>
-                  <Feather name="arrow-right" size={16} color={COLORS.white} style={styles.btnArrow} />
+                  <Feather name="arrow-right" size={16} color={apariencia.color(COLORS.white)} style={styles.btnArrow} />
                 </View>
               )}
             </TouchableOpacity>
@@ -497,7 +495,7 @@ export const RegistroForm: React.FC<RegistroFormProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   container: {
     width: '100%',
   },

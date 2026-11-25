@@ -1,3 +1,4 @@
+import { useAparienciaViewModel } from '../viewmodels/useAparienciaViewModel';
 import { View, type ViewProps } from 'react-native';
 
 import { ThemeColor } from '@/constants/theme';
@@ -10,7 +11,8 @@ export type ThemedViewProps = ViewProps & {
 };
 
 export function ThemedView({ style, lightColor, darkColor, type, ...otherProps }: ThemedViewProps) {
+  const apariencia = useAparienciaViewModel();
   const theme = useTheme();
 
-  return <View style={[{ backgroundColor: theme[type ?? 'background'] }, style]} {...otherProps} />;
+  return <View style={[{ backgroundColor: apariencia.color(theme[type ?? 'background'], 'background') }, style]} {...otherProps} />;
 }

@@ -1,16 +1,8 @@
+import { useThemedStyles } from '../../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../../viewmodels/useAparienciaViewModel';
 import React from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Text } from '../compartidos/TextoApp';
 
 type EditarPerfilModalProps = {
   visible: boolean;
@@ -46,7 +38,10 @@ export const EditarPerfilModal = ({
   onTelefonoChange,
   onCancel,
   onSave,
-}: EditarPerfilModalProps) => (
+}: EditarPerfilModalProps) => {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
+  return (
   <Modal
     visible={visible}
     transparent
@@ -76,7 +71,7 @@ export const EditarPerfilModal = ({
             editable={!isSaving}
             autoCapitalize="words"
             style={styles.input}
-            maxLength={120}
+            maxLength={120} placeholderTextColor={apariencia.colors.muted} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
           />
 
           <Text style={styles.label}>Apellido paterno</Text>
@@ -87,7 +82,7 @@ export const EditarPerfilModal = ({
             editable={!isSaving}
             autoCapitalize="words"
             style={styles.input}
-            maxLength={120}
+            maxLength={120} placeholderTextColor={apariencia.colors.muted} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
           />
 
           <Text style={styles.label}>Apellido materno</Text>
@@ -98,7 +93,7 @@ export const EditarPerfilModal = ({
             editable={!isSaving}
             autoCapitalize="words"
             style={styles.input}
-            maxLength={120}
+            maxLength={120} placeholderTextColor={apariencia.colors.muted} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
           />
 
           <Text style={styles.label}>Teléfono</Text>
@@ -111,7 +106,7 @@ export const EditarPerfilModal = ({
             style={styles.input}
             maxLength={25}
             placeholder="10 a 15 dígitos"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={apariencia.color("#94A3B8")} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
           />
 
           <Text style={styles.label}>Correo</Text>
@@ -119,7 +114,7 @@ export const EditarPerfilModal = ({
             accessibilityLabel="Correo de solo lectura"
             value={correo}
             editable={false}
-            style={[styles.input, styles.readOnlyInput]}
+            style={[styles.input, styles.readOnlyInput]} placeholderTextColor={apariencia.colors.muted} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
           />
 
           {error ? (
@@ -149,7 +144,7 @@ export const EditarPerfilModal = ({
               ]}
             >
               {isSaving ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={apariencia.color("#FFFFFF")} />
               ) : (
                 <Text style={styles.saveText}>Guardar</Text>
               )}
@@ -160,8 +155,9 @@ export const EditarPerfilModal = ({
     </KeyboardAvoidingView>
   </Modal>
 );
+};
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: 'center',

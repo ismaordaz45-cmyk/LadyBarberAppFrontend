@@ -1,12 +1,17 @@
+import { useThemedStyles } from '../../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../../viewmodels/useAparienciaViewModel';
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Text } from '../compartidos/TextoApp';
 import { Feather } from '@expo/vector-icons';
 
 export const PromoBanner: React.FC = () => {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   return (
     <View style={styles.banner}>
       <View style={styles.iconBox}>
-        <Feather name="shopping-bag" size={20} color="#FFFFFF" />
+        <Feather name="shopping-bag" size={20} color={apariencia.color("#FFFFFF")} />
       </View>
       <View style={styles.textBox}>
         <Text style={styles.title}>Catálogo informativo</Text>
@@ -18,7 +23,7 @@ export const PromoBanner: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

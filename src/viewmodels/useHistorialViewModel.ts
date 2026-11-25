@@ -1,11 +1,3 @@
-import { useState } from 'react';
+import { useMisCitasViewModel } from './useMisCitasViewModel';
 
-export const useHistorialViewModel = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [historial, setHistorial] = useState([]);
-
-  return {
-    isLoading,
-    historial,
-  };
-};
+export const useHistorialViewModel = () => useMisCitasViewModel('historial');

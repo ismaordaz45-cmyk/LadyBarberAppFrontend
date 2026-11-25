@@ -1,13 +1,8 @@
+import { useThemedStyles } from '../../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../../viewmodels/useAparienciaViewModel';
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Image,
-} from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { Text } from '../compartidos/TextoApp';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRestablecerPasswordViewModel } from '../../viewmodels/useRestablecerPasswordViewModel';
 import { BarberActionOverlay } from '../compartidos/BarberActionOverlay';
@@ -49,6 +44,8 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
   onBackToLogin,
   onSuccess,
 }) => {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   const {
     token,
     setToken,
@@ -140,7 +137,7 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
             style={styles.backButton}
             activeOpacity={0.7}
           >
-            <Feather name="chevron-left" size={16} color={COLORS.primaryBlue} />
+            <Feather name="chevron-left" size={16} color={apariencia.color(COLORS.primaryBlue)} />
             <Text style={styles.backButtonText}>Volver al inicio de sesión</Text>
           </TouchableOpacity>
         )}
@@ -154,7 +151,7 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
         {/* Banner de Error */}
         {error ? (
           <View style={styles.errorAlert}>
-            <Feather name="alert-circle" size={18} color="#DC2626" style={styles.alertIcon} />
+            <Feather name="alert-circle" size={18} color={apariencia.color("#DC2626")} style={styles.alertIcon} />
             <Text style={styles.errorAlertText}>{error}</Text>
           </View>
         ) : null}
@@ -162,7 +159,7 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
         {/* Si no hay token en parámetros, mostrar aviso informativo */}
         {!token.trim() && (
           <View style={styles.warningAlert}>
-            <Feather name="info" size={18} color={COLORS.warningText} style={styles.alertIcon} />
+            <Feather name="info" size={18} color={apariencia.color(COLORS.warningText)} style={styles.alertIcon} />
             <Text style={styles.warningAlertText}>
               Pega el token recibido en tu correo electrónico para verificar tu identidad y restablecer tu contraseña.
             </Text>
@@ -173,7 +170,7 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
         {exitoso ? (
           <View style={styles.successCard}>
             <View style={styles.successAlert}>
-              <Feather name="check-circle" size={20} color="#16A34A" style={styles.alertIcon} />
+              <Feather name="check-circle" size={20} color={apariencia.color("#16A34A")} style={styles.alertIcon} />
               <View style={styles.successTextContainer}>
                 <Text style={styles.successAlertTitle}>¡Contraseña actualizada!</Text>
                 <Text style={styles.successAlertText}>
@@ -199,16 +196,16 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Token o código de verificación</Text>
               <View style={styles.inputWrapper}>
-                <Feather name="key" size={17} color={COLORS.textMuted} style={styles.inputIcon} />
+                <Feather name="key" size={17} color={apariencia.color(COLORS.textMuted)} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Pega el token recibido por correo"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={apariencia.color("#94A3B8")}
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={token}
                   onChangeText={setToken}
-                  editable={!isLoading}
+                  editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
                 />
               </View>
             </View>
@@ -217,17 +214,17 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Nueva contraseña</Text>
               <View style={styles.inputWrapper}>
-                <Feather name="lock" size={17} color={COLORS.textMuted} style={styles.inputIcon} />
+                <Feather name="lock" size={17} color={apariencia.color(COLORS.textMuted)} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••••••"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={apariencia.color("#94A3B8")}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={password}
                   onChangeText={setPassword}
-                  editable={!isLoading}
+                  editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
                 />
                 <TouchableOpacity
                   onPress={toggleShowPassword}
@@ -237,7 +234,7 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
                   <Feather
                     name={showPassword ? 'eye-off' : 'eye'}
                     size={18}
-                    color={COLORS.textMuted}
+                    color={apariencia.color(COLORS.textMuted)}
                   />
                 </TouchableOpacity>
               </View>
@@ -248,7 +245,7 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
                   <Feather
                     name={passwordRules.len8 ? 'check-circle' : 'circle'}
                     size={13}
-                    color={passwordRules.len8 ? COLORS.strengthOk : COLORS.textMuted}
+                    color={apariencia.color(passwordRules.len8 ? COLORS.strengthOk : COLORS.textMuted)}
                   />
                   <Text
                     style={[
@@ -264,7 +261,7 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
                   <Feather
                     name={passwordRules.upper ? 'check-circle' : 'circle'}
                     size={13}
-                    color={passwordRules.upper ? COLORS.strengthOk : COLORS.textMuted}
+                    color={apariencia.color(passwordRules.upper ? COLORS.strengthOk : COLORS.textMuted)}
                   />
                   <Text
                     style={[
@@ -280,7 +277,7 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
                   <Feather
                     name={passwordRules.digit ? 'check-circle' : 'circle'}
                     size={13}
-                    color={passwordRules.digit ? COLORS.strengthOk : COLORS.textMuted}
+                    color={apariencia.color(passwordRules.digit ? COLORS.strengthOk : COLORS.textMuted)}
                   />
                   <Text
                     style={[
@@ -304,17 +301,17 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
                   confirmHasInput && passwordsMatch && styles.inputWrapperSuccess,
                 ]}
               >
-                <Feather name="lock" size={17} color={COLORS.textMuted} style={styles.inputIcon} />
+                <Feather name="lock" size={17} color={apariencia.color(COLORS.textMuted)} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="••••••••••••"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={apariencia.color("#94A3B8")}
                   secureTextEntry={!showPasswordConfirm}
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={passwordConfirm}
                   onChangeText={setPasswordConfirm}
-                  editable={!isLoading}
+                  editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
                 />
                 <TouchableOpacity
                   onPress={toggleShowPasswordConfirm}
@@ -324,7 +321,7 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
                   <Feather
                     name={showPasswordConfirm ? 'eye-off' : 'eye'}
                     size={18}
-                    color={COLORS.textMuted}
+                    color={apariencia.color(COLORS.textMuted)}
                   />
                 </TouchableOpacity>
               </View>
@@ -348,7 +345,7 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
             >
               {isLoading ? (
                 <View style={styles.loadingRow}>
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color={apariencia.color("#FFFFFF")} size="small" />
                   <Text style={styles.primaryBtnText}>Restableciendo...</Text>
                 </View>
               ) : (
@@ -370,7 +367,7 @@ export const RestablecerPasswordForm: React.FC<RestablecerPasswordFormProps> = (
   );
 };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   container: {
     width: '100%',
     backgroundColor: COLORS.white,

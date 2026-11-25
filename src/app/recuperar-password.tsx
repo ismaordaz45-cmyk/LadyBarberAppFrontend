@@ -1,3 +1,4 @@
+import { useThemedStyles } from '../hooks/use-themed-styles';
 import React from 'react';
 import {
   SafeAreaView,
@@ -10,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { RecuperarPasswordForm } from '../components/autenticacion/RecuperarPasswordForm';
 
 export default function RecuperarPasswordScreen() {
+  const styles = useThemedStyles(baseStyles);
   const router = useRouter();
 
   return (
@@ -34,7 +36,7 @@ export default function RecuperarPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#F1F5F9',

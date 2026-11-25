@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Animated, Easing } from 'react-native';
 
 interface BarberPoleProps {
@@ -25,7 +25,7 @@ export const BarberPole: React.FC<BarberPoleProps> = ({
   speedMs = 1200,
   direction = 'down',
 }) => {
-  const animValue = useRef(new Animated.Value(0)).current;
+  const [animValue] = useState(() => new Animated.Value(0));
 
   // Parámetros de las franjas
   const stripeHeight = Math.max(8, Math.round(width * 0.5));

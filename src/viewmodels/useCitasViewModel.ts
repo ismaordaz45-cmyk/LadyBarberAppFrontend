@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Alert, Linking } from 'react-native';
+import { Alert, AppState } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { estadoHorario } from '../utils/citasPresentation';
+import { usePagoCitaViewModel } from './usePagoCitaViewModel';
+import { useCatalogoReservaViewModel } from './useCatalogoReservaViewModel';
 import { CitasRepository } from '../repositories/citasRepository';
 import { ServicioItem } from '../models/Servicio';
 import { DiaHorario, Empleada, Ocupacion } from '../models/Cita';
@@ -63,7 +67,7 @@ export function getMinFechaReserva(): string {
   return `${y}-${m}-${d}`;
 }
 
-export const useCitasViewModel = () => {
+export const useCitasViewModel = (agendando = true) => {
   const [activeStep, setActiveStep] = useState(0); // 0: Servicios, 1: Fecha/Barbero, 2: Resumen
   const [isLoadingCatalogo, setIsLoadingCatalogo] = useState(true);
   const [isGuardando, setIsGuardando] = useState(false);
@@ -74,6 +78,8 @@ export const useCitasViewModel = () => {
   
   // Paso 1
   const [serviciosSel, setServiciosSel] = useState<string[]>([]);
+  const catalogoServicios = useCatalogoReservaViewModel(serviciosApi, serviciosSel);
+  const [revisionCatalogo, setRevisionCatalogo] = useState(0);
   
   // Paso 2
   const [empleadasApi, setEmpleadasApi] = useState<Empleada[]>([]);
@@ -83,12 +89,24 @@ export const useCitasViewModel = () => {
   const [ocupacionApi, setOcupacionApi] = useState<Ocupacion[]>([]);
   const [cargandoEstilistas, setCargandoEstilistas] = useState(false);
   const [cargandoOcupacion, setCargandoOcupacion] = useState(false);
+  const [errorOcupacion, setErrorOcupacion] = useState<string | null>(null);
+  const [revisionOcupacion, setRevisionOcupacion] = useState(0);
 
   // Paso 3
   const [citaCreadaId, setCitaCreadaId] = useState<string>('');
   const [citaCreadaTimestamp, setCitaCreadaTimestamp] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState(1800); // 30 min
-  const [terminosAceptados, setTerminosAceptados] = useState(false);
+  const pago = usePagoCitaViewModel(citaCreadaId);
+
+  useFocusEffect(useCallback(() => {
+    if (activeStep !== 1 || !agendando) return;
+    let active = true;
+    const actualizar = () => setRevisionOcupacion(v => v + 1);
+    void Promise.resolve().then(() => { if (active) actualizar(); });
+    const subscription = AppState.addEventListener('change', state => { if (state === 'active') actualizar(); });
+    const timer = setInterval(actualizar, 30_000);
+    return () => { active = false; subscription.remove(); clearInterval(timer); };
+  }, [activeStep, agendando]));
 
   // Cargar catálogos
   useEffect(() => {
@@ -96,6 +114,7 @@ export const useCitasViewModel = () => {
     const load = async () => {
       try {
         setIsLoadingCatalogo(true);
+        setErrorMsg(null);
         const [srvRes, horRes] = await Promise.all([
           CitasRepository.getServicios(),
           CitasRepository.getHorarioNegocio()
@@ -104,7 +123,7 @@ export const useCitasViewModel = () => {
           setServiciosApi(srvRes);
           setHorariosNegocio(horRes);
         }
-      } catch (e: any) {
+      } catch {
         if (!cancel) setErrorMsg('No se pudo cargar el catálogo.');
       } finally {
         if (!cancel) setIsLoadingCatalogo(false);
@@ -112,7 +131,7 @@ export const useCitasViewModel = () => {
     };
     load();
     return () => { cancel = true; };
-  }, []);
+  }, [revisionCatalogo]);
 
   // Cargar estilistas según servicios seleccionados
   useEffect(() => {
@@ -164,43 +183,37 @@ export const useCitasViewModel = () => {
       }
       try {
         setCargandoOcupacion(true);
+        setErrorOcupacion(null);
         const res = await CitasRepository.getOcupacion(fecha, empleadaId);
         if (!cancel) setOcupacionApi(res);
       } catch {
-        if (!cancel) setOcupacionApi([]);
+        if (!cancel) { setOcupacionApi([]); setErrorOcupacion('No se pudo verificar la disponibilidad. Actualiza antes de reservar.'); }
       } finally {
         if (!cancel) setCargandoOcupacion(false);
       }
     };
     loadOcupacion();
     return () => { cancel = true; };
-  }, [fecha, empleadaId]);
+  }, [fecha, empleadaId, revisionOcupacion]);
 
   // Temporizador de apartado
   useEffect(() => {
-    if (activeStep !== 2 || !citaCreadaTimestamp) return;
+    if (!agendando || activeStep !== 2 || !citaCreadaTimestamp || pago.pagoAprobado) return;
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - citaCreadaTimestamp) / 1000);
       const remaining = 1800 - elapsed;
       if (remaining <= 0) {
         setTimeLeft(0);
         clearInterval(interval);
-        Alert.alert('Apartado Expirado', 'El tiempo límite ha expirado. Por favor reserva nuevamente.', [
-          {
-            text: 'OK', onPress: () => {
-              setActiveStep(1);
-              setHorario('');
-              setCitaCreadaId('');
-              setCitaCreadaTimestamp(null);
-            }
-          }
+        Alert.alert('Apartado Expirado', 'El plazo terminó. Si ya pagaste, consulta el estado antes de reservar nuevamente.', [
+          { text: 'OK' }
         ]);
       } else {
         setTimeLeft(remaining);
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [activeStep, citaCreadaTimestamp]);
+  }, [agendando, activeStep, citaCreadaTimestamp, pago.pagoAprobado]);
 
   // Cálculos derivados
   const duracionYPrecioTotal = useMemo(() => {
@@ -226,34 +239,13 @@ export const useCitasViewModel = () => {
     const slots = construirSlotsCadaHora(dia.horaApertura, dia.horaCierre);
     const durTotal = duracionYPrecioTotal.duracion;
 
-    return slots.map(hStr => {
-      const parts = hStr.split(':');
-      const slotMin = Number(parts[0]) * 60 + Number(parts[1]);
-      const slotEndMin = slotMin + durTotal;
-
-      let estadoSlot = 'disponible';
-      let citaIdConflicto = null;
-
-      for (const cita of ocupacionApi) {
-        const dInicio = new Date(cita.horaInicio);
-        const dFin = new Date(cita.horaFin);
-        const cStartMin = dInicio.getHours() * 60 + dInicio.getMinutes();
-        const cEndMin = dFin.getHours() * 60 + dFin.getMinutes();
-
-        if (slotMin < cEndMin && slotEndMin > cStartMin) {
-          citaIdConflicto = cita.id;
-          estadoSlot = cita.estado === 'APARTADA' ? 'apartado' : 'confirmado';
-          break;
-        }
-      }
-      return { hora: hStr, estado: estadoSlot, citaId: citaIdConflicto };
-    });
+    return slots.map(hora => ({ hora, estado: estadoHorario(hora, durTotal, dia.horaCierre!, ocupacionApi) }));
   }, [fecha, horariosNegocio, ocupacionApi, duracionYPrecioTotal.duracion]);
 
   // Actions
-  const toggleServicio = (id: string) => {
+  const toggleServicio = useCallback((id: string) => {
     setServiciosSel(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
-  };
+  }, []);
 
   const nextStep1 = () => {
     if (serviciosSel.length === 0) {
@@ -264,6 +256,7 @@ export const useCitasViewModel = () => {
   };
 
   const nextStep2 = async () => {
+    if (isGuardando || cargandoOcupacion || errorOcupacion) return;
     if (!fecha || !empleadaId || !horario) {
       Alert.alert('Datos incompletos', 'Selecciona fecha, estilista y un horario disponible.');
       return;
@@ -293,40 +286,24 @@ export const useCitasViewModel = () => {
   };
 
   const handleBack = () => {
-    if (activeStep === 2) {
-      Alert.alert(
-        '¿Volver al paso anterior?',
-        'Si regresas, perderás tu apartado actual sobre este horario.',
-        [
-          { text: 'Mantener apartado', style: 'cancel' },
-          {
-            text: 'Sí, regresar',
-            style: 'destructive',
-            onPress: () => {
-              if (citaCreadaId) CitasRepository.cancelarCita(citaCreadaId).catch(() => {});
-              setCitaCreadaId('');
-              setCitaCreadaTimestamp(null);
-              setActiveStep(1);
-            }
-          }
-        ]
-      );
-    } else {
-      setActiveStep(prev => prev - 1);
-    }
+    if (pago.pagoAprobado) return;
+    if (activeStep === 1) setActiveStep(0);
+  };
+
+  const cancelarApartado = async () => {
+    if (!citaCreadaId || pago.pagoAprobado) return;
+    // Conservar el identificador y la pantalla si el servidor rechaza la cancelación.
+    await CitasRepository.cancelarCita(citaCreadaId);
+    setCitaCreadaId('');
+    setCitaCreadaTimestamp(null);
+    setActiveStep(0);
   };
 
   const handlePagarAnticipo = async () => {
-    if (!terminosAceptados) {
-      Alert.alert('Aviso', 'Debes aceptar las políticas para continuar.');
-      return;
-    }
+    if (!citaCreadaId || isGuardando || pago.pagoAprobado || timeLeft <= 0) return;
     try {
       setIsGuardando(true);
-      const res = await CitasRepository.crearPreferenciaPago(citaCreadaId);
-      if (res.initPoint) {
-        Linking.openURL(res.initPoint);
-      }
+      await pago.abrirCheckout();
     } catch (e: any) {
       Alert.alert('Error de pago', e.message || 'No se pudo generar el link de pago.');
     } finally {
@@ -335,6 +312,16 @@ export const useCitasViewModel = () => {
   };
 
   return {
+    catalogoServicios,
+    reintentarCatalogo: () => { setIsLoadingCatalogo(true); setErrorMsg(null); setRevisionCatalogo(v => v + 1); },
+    citaCreadaId,
+    nuevaCita: (servicioId?: string) => {
+      setCitaCreadaId(''); setCitaCreadaTimestamp(null); setTimeLeft(1800);
+      setServiciosSel(serviciosApi.some(s => s.id === servicioId && s.estaActivo) ? [servicioId!] : []);
+      setEmpleadaId(null);
+      setFecha(''); setHorario(''); setOcupacionApi([]); setActiveStep(0);
+      catalogoServicios.reiniciar();
+    },
     activeStep,
     isLoadingCatalogo,
     isGuardando,
@@ -344,21 +331,27 @@ export const useCitasViewModel = () => {
     toggleServicio,
     empleadasApi,
     empleadaId,
-    setEmpleadaId,
+    setEmpleadaId: (id: number) => { setEmpleadaId(id); setHorario(''); },
     fecha,
-    setFecha,
+    setFecha: (value: string) => { setFecha(value); setHorario(''); },
     horario,
     setHorario,
     slotsConEstado,
     duracionYPrecioTotal,
     cargandoEstilistas,
     cargandoOcupacion,
+    errorOcupacion,
+    actualizarHorarios: () => setRevisionOcupacion(v => v + 1),
     timeLeft,
-    terminosAceptados,
-    setTerminosAceptados,
     nextStep1,
     nextStep2,
     handleBack,
-    handlePagarAnticipo
+    cancelarApartado,
+    handlePagarAnticipo,
+    estadoPago: pago.estadoPago,
+    consultandoPago: pago.consultandoPago,
+    errorPago: pago.errorPago,
+    consultarPago: pago.consultarPago,
+    pagoAprobado: pago.pagoAprobado,
   };
 };

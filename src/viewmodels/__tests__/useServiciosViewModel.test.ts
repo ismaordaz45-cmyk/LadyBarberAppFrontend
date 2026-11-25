@@ -45,7 +45,7 @@ const renderHook = () => {
   };
   let renderer: any;
   act(() => {
-    const TestRenderer = require('react-test-renderer');
+    const TestRenderer = jest.requireActual('react-test-renderer');
     renderer = TestRenderer.create(React.createElement(Component));
   });
   mountedRenderers.push(renderer);
@@ -88,6 +88,22 @@ describe('HU-12 useServiciosViewModel', () => {
     expect(result.current.error).toBeNull();
     expect(result.current.servicios).toEqual(servicios);
     expect(result.current.totalServicios).toBe(3);
+  });
+  it('pagina 200 servicios de seis en seis y reinicia página al combinar búsqueda y categoría sin consultar otra vez', async () => {
+    const items = Array.from({ length: 200 }, (_, i) => ({ ...servicios[0], id: String(i), nombre: `Corte ${i}`, categoria: i % 2 ? 'Cabello' : 'Barba' }));
+    const { result } = await renderLoaded(items);
+    expect(result.current.servicios).toHaveLength(6);
+    expect(result.current.totalPaginas).toBe(34);
+    act(() => result.current.cambiarPagina(34));
+    expect(result.current.servicios).toHaveLength(2);
+    act(() => result.current.setCategoriaActiva('Barba'));
+    expect(result.current.pagina).toBe(1);
+    expect(result.current.totalServicios).toBe(100);
+    act(() => result.current.cambiarPagina(3));
+    act(() => result.current.setBusqueda('Corte 19'));
+    expect(result.current.pagina).toBe(1);
+    expect(result.current.servicios.map(s => s.id)).toEqual(['190', '192', '194', '196', '198']);
+    expect(ServiciosRepository.getServicios).toHaveBeenCalledTimes(1);
   });
 
   it('maneja lista vacia', async () => {

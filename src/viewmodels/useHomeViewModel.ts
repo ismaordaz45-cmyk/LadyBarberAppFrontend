@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { AppState } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { HomeRepository } from '../repositories/homeRepository';
 import { sessionStore } from '../services/sessionStore';
 import { ProximaCita, ResumenCliente } from '../models/Catalogo';
@@ -20,7 +22,8 @@ const normalizeProximaCita = (value: unknown): ProximaCita | null => {
   const horaInicio = nonEmptyString(value.horaInicio);
   const horaFin = nonEmptyString(value.horaFin);
   const estado = nonEmptyString(value.estado);
-  const precioFinal = value.precioFinal;
+  const precioFinal = typeof value.precioFinal === 'number' ||
+    (typeof value.precioFinal === 'string' && value.precioFinal.trim()) ? Number(value.precioFinal) : NaN;
 
   if (
     !id || !fecha || !horaInicio || !horaFin || !estado
@@ -66,18 +69,20 @@ export const useHomeViewModel = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resumen, setResumen] = useState<ResumenCliente | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const cargarDatos = async () => {
+  const generacion = useRef(0);
+  const ocupado = useRef(false);
+  const cargarDatos = useCallback(async () => {
+      if (ocupado.current) return;
+      ocupado.current = true;
+      const solicitud = ++generacion.current;
+      const token = sessionStore.token;
       setIsLoading(true);
       setError(null);
 
       try {
         const response: unknown = await HomeRepository.getResumenCliente();
 
-        if (cancelled) return;
+        if (solicitud !== generacion.current || token !== sessionStore.token) return;
 
         if (response !== null && !isRecord(response)) {
           setResumen(null);
@@ -86,18 +91,19 @@ export const useHomeViewModel = () => {
         }
         setResumen(response as ResumenCliente | null);
       } catch (loadError) {
-        if (!cancelled) {
+        if (solicitud === generacion.current && token === sessionStore.token) {
           setResumen(null);
           setError(getErrorMessage(loadError));
         }
       } finally {
-        if (!cancelled) setIsLoading(false);
+        if (solicitud === generacion.current) { ocupado.current = false; setIsLoading(false); }
       }
-    };
-
-    cargarDatos();
-    return () => { cancelled = true; };
   }, []);
+  useFocusEffect(useCallback(() => {
+    void cargarDatos();
+    const subscription = AppState.addEventListener('change', state => { if (state === 'active') void cargarDatos(); });
+    return () => { generacion.current += 1; ocupado.current = false; subscription.remove(); };
+  }, [cargarDatos]));
 
   // ── Datos derivados / transformados ─────────────────────────
 
@@ -125,5 +131,6 @@ export const useHomeViewModel = () => {
     proximaCita,
     stats,
     resumen,
+    actualizar: cargarDatos,
   };
 };

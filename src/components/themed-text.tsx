@@ -1,4 +1,7 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { useThemedStyles } from '../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../viewmodels/useAparienciaViewModel';
+import { Platform, StyleSheet, type TextProps } from 'react-native';
+import { Text } from './compartidos/TextoApp';
 
 import { Fonts, ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -9,12 +12,14 @@ export type ThemedTextProps = TextProps & {
 };
 
 export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   const theme = useTheme();
 
   return (
     <Text
       style={[
-        { color: theme[themeColor ?? 'text'] },
+        { color: apariencia.color(theme[themeColor ?? 'text']) },
         type === 'default' && styles.default,
         type === 'title' && styles.title,
         type === 'small' && styles.small,
@@ -30,7 +35,7 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   small: {
     fontSize: 14,
     lineHeight: 20,

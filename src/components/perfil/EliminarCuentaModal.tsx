@@ -1,15 +1,8 @@
+import { useThemedStyles } from '../../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../../viewmodels/useAparienciaViewModel';
 import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Text } from '../compartidos/TextoApp';
 
 type EliminarCuentaModalProps = {
   visible: boolean;
@@ -36,6 +29,8 @@ export const EliminarCuentaModal = ({
   onCancel,
   onDelete,
 }: EliminarCuentaModalProps) => {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   return (
@@ -69,7 +64,7 @@ export const EliminarCuentaModal = ({
             editable={!isDeleting}
             style={styles.passwordInput}
             placeholder="Ingresa tu contraseña"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={apariencia.color("#94A3B8")} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
           />
           <Pressable
             accessibilityRole="button"
@@ -100,7 +95,7 @@ export const EliminarCuentaModal = ({
           editable={!isDeleting}
           style={styles.input}
           placeholder="ELIMINAR"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={apariencia.color("#94A3B8")} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
         />
 
         {error ? (
@@ -135,7 +130,7 @@ export const EliminarCuentaModal = ({
             ]}
           >
             {isDeleting ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={apariencia.color("#FFFFFF")} />
             ) : (
               <Text style={styles.deleteText}>Eliminar definitivamente</Text>
             )}
@@ -147,7 +142,7 @@ export const EliminarCuentaModal = ({
   );
 };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: 'center',

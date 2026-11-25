@@ -1,7 +1,10 @@
+import { useThemedStyles } from '../../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../../viewmodels/useAparienciaViewModel';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../compartidos/TextoApp';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LegalSection } from '../../content/legal';
 import { LegalPublicUrl, openLegalUrl } from '../../services/legalLinks';
@@ -20,6 +23,8 @@ interface LegalDocumentScreenProps {
 }
 
 export function LegalDocumentScreen({ title, subtitle, lastUpdated, sections, externalLinks = [] }: LegalDocumentScreenProps) {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   const router = useRouter();
 
   const handleExternalLink = async (url: LegalPublicUrl) => {
@@ -37,7 +42,7 @@ export function LegalDocumentScreen({ title, subtitle, lastUpdated, sections, ex
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Volver" onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={21} color="#1E3A5F" />
+          <Feather name="arrow-left" size={21} color={apariencia.color("#1E3A5F")} />
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.title}>{title}</Text>
@@ -46,7 +51,7 @@ export function LegalDocumentScreen({ title, subtitle, lastUpdated, sections, ex
       </View>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.versionCard}>
-          <Feather name="shield" size={19} color="#B47D22" />
+          <Feather name="shield" size={19} color={apariencia.color("#B47D22")} />
           <Text style={styles.versionText}>Última actualización: {lastUpdated}</Text>
         </View>
         {externalLinks.length > 0 ? (
@@ -59,7 +64,7 @@ export function LegalDocumentScreen({ title, subtitle, lastUpdated, sections, ex
                 onPress={() => void handleExternalLink(link.url)}
                 style={styles.externalLinkButton}
               >
-                <Feather name="external-link" size={17} color="#1E3A5F" />
+                <Feather name="external-link" size={17} color={apariencia.color("#1E3A5F")} />
                 <Text style={styles.externalLinkText}>{link.label}</Text>
               </TouchableOpacity>
             ))}
@@ -81,7 +86,7 @@ export function LegalDocumentScreen({ title, subtitle, lastUpdated, sections, ex
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F8FAFC' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 14, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
   backButton: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFC', marginRight: 12 },

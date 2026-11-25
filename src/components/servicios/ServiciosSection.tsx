@@ -1,301 +1,73 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-} from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useThemedStyles } from '../../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../../viewmodels/useAparienciaViewModel';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+import { View, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, FlatList, RefreshControl } from 'react-native';
+import { Text } from '../compartidos/TextoApp';
+import { Feather } from '@expo/vector-icons';
 import { useServiciosViewModel } from '../../viewmodels/useServiciosViewModel';
 import { ServicioCard } from './ServicioCard';
 import { ServicioDetalleModal } from './ServicioDetalleModal';
 import { ServicioItem } from '../../models/Servicio';
 
-interface ServiciosSectionProps {
-  onAgendarServicio?: (servicio: ServicioItem) => void;
-}
-
-export const ServiciosSection: React.FC<ServiciosSectionProps> = ({
-  onAgendarServicio,
-}) => {
-  const {
-    isLoading,
-    error,
-    categoriaActiva,
-    setCategoriaActiva,
-    busqueda,
-    setBusqueda,
-    categoriasDisponibles,
-    servicios,
-    servicioSeleccionado,
-    modalDetalleVisible,
-    abrirDetalle,
-    cerrarDetalle,
-  } = useServiciosViewModel();
-
-  const handleAgendar = (item: ServicioItem) => {
-    if (onAgendarServicio) {
-      onAgendarServicio(item);
-    }
-  };
-
-  return (
-    <View style={styles.container}>
-      {/* Subcabecera de Sección */}
-      <View style={styles.header}>
-        <View style={styles.eyebrowRow}>
-          <MaterialCommunityIcons
-            name="star-four-points"
-            size={13}
-            color="#D97706"
-            style={{ marginRight: 5 }}
-          />
-          <Text style={styles.eyebrowText}>EXPERIENCIAS DE AUTOR</Text>
-        </View>
-        <Text style={styles.sectionTitle}>Nuestros Servicios Exclusivos</Text>
-        <Text style={styles.sectionSubtitle}>
-          Bespoke grooming, visagismo editorial y tratamientos...
-        </Text>
-      </View>
-
-      {/* Barra de Búsqueda y Botón de Filtro */}
-      <View style={styles.searchRow}>
-        <View style={styles.searchInputContainer}>
-          <Feather name="search" size={17} color="#3B82F6" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar servicio, corte, tinte..."
-            placeholderTextColor="#94A3B8"
-            value={busqueda}
-            onChangeText={setBusqueda}
-          />
-          {busqueda.length > 0 && (
-            <TouchableOpacity onPress={() => setBusqueda('')} style={styles.clearBtn}>
-              <Feather name="x" size={14} color="#94A3B8" />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Botón de Filtros */}
-        <TouchableOpacity style={styles.filterBtn} activeOpacity={0.8}>
-          <Feather name="sliders" size={17} color="#D97706" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Píldoras de Categorías Horizontales */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesScroll}
-      >
-        {categoriasDisponibles.map((cat: string) => {
-          const isActive = categoriaActiva === cat;
-          return (
-            <TouchableOpacity
-              key={cat}
-              style={[styles.catPill, isActive && styles.catPillActive]}
-              onPress={() => setCategoriaActiva(cat)}
-              activeOpacity={0.8}
-            >
-              {isActive && <View style={styles.activeDot} />}
-              <Text style={[styles.catPillText, isActive && styles.catPillTextActive]}>
-                {cat}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      {/* Estado de carga / error / lista */}
-      <View style={styles.listContainer}>
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#1E293B" />
-            <Text style={styles.loadingText}>Cargando servicios...</Text>
-          </View>
-        ) : error ? (
-          <View style={styles.errorContainer}>
-            <Feather name="wifi-off" size={28} color="#EF4444" />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : servicios.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Feather name="search" size={32} color="#CBD5E1" />
-            <Text style={styles.emptyTitle}>No se encontraron servicios</Text>
-            <Text style={styles.emptySubtitle}>
-              Intenta con otro término o selecciona otra categoría.
-            </Text>
-          </View>
-        ) : (
-          servicios.map((item) => (
-            <ServicioCard
-              key={item.id}
-              item={item}
-              onDetalle={abrirDetalle}
-              onAgendar={handleAgendar}
-            />
-          ))
-        )}
-      </View>
-
-      {/* Modal de Detalle */}
-      <ServicioDetalleModal
-        visible={modalDetalleVisible}
-        servicio={servicioSeleccionado}
-        onClose={cerrarDetalle}
-        onAgendar={handleAgendar}
-      />
+type Props = { onAgendarServicio?: (servicio: ServicioItem) => void; cabecera?: React.ReactElement; onActualizar?: () => void };
+type Fila = ServicioItem | { tipo: 'controles'; id: string };
+export const ServiciosSection = forwardRef<{ mostrarServicios: () => void }, Props>(function ServiciosSection({ onAgendarServicio, cabecera, onActualizar }, ref) {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
+  const vm = useServiciosViewModel();
+  const lista = useRef<FlatList<Fila>>(null);
+  const altoPanel = useRef(0);
+  const mostrarServicios = () => lista.current?.scrollToOffset({ offset: altoPanel.current, animated: true });
+  const volverAlInicioCatalogo = () => lista.current?.scrollToOffset({ offset: altoPanel.current, animated: false });
+  useImperativeHandle(ref, () => ({ mostrarServicios }));
+  const agendar = (item: ServicioItem) => { vm.cerrarDetalle(); onAgendarServicio?.(item); };
+  const controles = <View style={styles.controls}>
+    <Text accessibilityRole="header" style={styles.title}>Nuestros Servicios Exclusivos</Text>
+    <View style={styles.search}>
+      <Feather name="search" size={19} color={apariencia.color("#2563EB")} />
+      <TextInput accessibilityLabel="Buscar servicios" style={styles.input} placeholder="Buscar servicio, corte, tinte..."
+        value={vm.busqueda} onChangeText={value => { vm.setBusqueda(value); volverAlInicioCatalogo(); }} placeholderTextColor={apariencia.colors.muted} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'} />
+      {!!vm.busqueda && <TouchableOpacity accessibilityLabel="Limpiar búsqueda" accessibilityRole="button" onPress={() => { vm.setBusqueda(''); volverAlInicioCatalogo(); }} style={styles.clear}><Feather name="x" size={18} color={apariencia.color("#64748B")} /></TouchableOpacity>}
     </View>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 20,
-    marginTop: 18,
-    marginBottom: 20,
-  },
-  header: {
-    marginBottom: 16,
-  },
-  eyebrowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  eyebrowText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#1E293B',
-    letterSpacing: 0.6,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#1E3A8A',
-    marginBottom: 4,
-    letterSpacing: -0.3,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
-  },
-  searchInputContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
-    color: '#0F172A',
-    height: '100%',
-  },
-  clearBtn: {
-    padding: 4,
-  },
-  filterBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  categoriesScroll: {
-    gap: 8,
-    paddingBottom: 4,
-    marginBottom: 16,
-  },
-  catPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  catPillActive: {
-    backgroundColor: '#1E293B',
-  },
-  activeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#F59E0B',
-    marginRight: 6,
-  },
-  catPillText: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  catPillTextActive: {
-    color: '#FFFFFF',
-  },
-  listContainer: {
-    marginTop: 4,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 36,
-    gap: 8,
-  },
-  emptyTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#334155',
-  },
-  emptySubtitle: {
-    fontSize: 12.5,
-    color: '#94A3B8',
-    textAlign: 'center',
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  errorContainer: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    gap: 10,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-  },
-  errorText: {
-    fontSize: 13,
-    color: '#DC2626',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={styles.categories}>
+      {vm.categoriasDisponibles.map(cat => <TouchableOpacity key={cat} accessibilityRole="button" accessibilityState={{ selected: vm.categoriaActiva === cat }}
+        style={[styles.chip, vm.categoriaActiva === cat && styles.selected]} onPress={() => { vm.setCategoriaActiva(cat); volverAlInicioCatalogo(); }}>
+        <Text style={[styles.chipText, vm.categoriaActiva === cat && styles.selectedText]}>{cat}</Text>
+      </TouchableOpacity>)}
+    </ScrollView>
+    <Text accessibilityLiveRegion="polite" style={styles.counter}>{vm.totalServicios} servicios · Página {vm.pagina} de {vm.totalPaginas}</Text>
+  </View>;
+  const estado = vm.isLoading ? <View style={styles.state}><ActivityIndicator color={apariencia.color("#1E3A5A")} /><Text>Cargando servicios...</Text></View>
+    : vm.error ? <View style={styles.state}><Text style={styles.error}>{vm.error}</Text><TouchableOpacity accessibilityRole="button" onPress={vm.reintentar}><Text style={styles.link}>Reintentar</Text></TouchableOpacity></View>
+    : vm.servicios.length === 0 ? <View style={styles.state}><Text style={styles.empty}>No se encontraron servicios</Text><Text style={styles.counter}>Intenta con otro término o selecciona otra categoría.</Text></View> : null;
+  return <View style={styles.container}>
+    <FlatList<Fila> ref={lista} data={[{ tipo: 'controles', id: 'controles' }, ...(!vm.isLoading && !vm.error ? vm.servicios : [])]}
+      keyExtractor={item => 'tipo' in item ? 'controles-catalogo' : `servicio-${item.id}`}
+      ListHeaderComponent={<View onLayout={event => { altoPanel.current = event.nativeEvent.layout.height; }}>{cabecera}</View>}
+      stickyHeaderIndices={[1]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
+      initialNumToRender={7} windowSize={5} showsVerticalScrollIndicator={false}
+      refreshControl={onActualizar ? <RefreshControl refreshing={false} onRefresh={() => { onActualizar(); vm.reintentar(); }} /> : undefined}
+      renderItem={({ item }) => 'tipo' in item ? controles : <View style={styles.card}><ServicioCard item={item} onDetalle={vm.abrirDetalle} onAgendar={agendar} /></View>}
+      ListFooterComponent={<View style={styles.footer}>{estado}
+        {!vm.isLoading && !vm.error && vm.totalPaginas > 1 && <View style={styles.pages}>
+          <TouchableOpacity accessibilityRole="button" disabled={vm.pagina <= 1} style={[styles.page, vm.pagina <= 1 && styles.disabled]}
+            onPress={() => { vm.cambiarPagina(vm.pagina - 1); mostrarServicios(); }}><Text style={styles.link}>Anterior</Text></TouchableOpacity>
+          <Text style={styles.counter}>{vm.pagina} / {vm.totalPaginas}</Text>
+          <TouchableOpacity accessibilityRole="button" disabled={vm.pagina >= vm.totalPaginas} style={[styles.page, vm.pagina >= vm.totalPaginas && styles.disabled]}
+            onPress={() => { vm.cambiarPagina(vm.pagina + 1); mostrarServicios(); }}><Text style={styles.link}>Siguiente</Text></TouchableOpacity>
+        </View>}
+      </View>} />
+    <ServicioDetalleModal visible={vm.modalDetalleVisible} servicio={vm.servicioSeleccionado} onClose={vm.cerrarDetalle} onAgendar={agendar} />
+  </View>;
+});
+const baseStyles = StyleSheet.create({
+  container: { flex: 1 }, controls: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12, gap: 12, backgroundColor: '#FFF', borderBottomColor: '#E5E7EB', borderBottomWidth: 1 },
+  title: { fontSize: 22, fontWeight: '800', color: '#1E3A5A' }, search: { flexDirection: 'row', gap: 10, alignItems: 'center', minHeight: 46, borderRadius: 12, paddingHorizontal: 12, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' },
+  input: { flex: 1, color: '#1E293B', paddingVertical: 12 }, clear: { minHeight: 44, minWidth: 32, alignItems: 'center', justifyContent: 'center' },
+  categories: { gap: 8 }, chip: { minHeight: 44, justifyContent: 'center', borderRadius: 24, paddingHorizontal: 16, backgroundColor: '#F1F5F9' },
+  selected: { backgroundColor: '#1E3A5A' }, chipText: { color: '#475569', fontWeight: '600' }, selectedText: { color: '#FFF' },
+  counter: { color: '#64748B', fontSize: 12 }, card: { paddingHorizontal: 20, paddingTop: 14 }, footer: { paddingHorizontal: 20, paddingBottom: 40 },
+  state: { paddingVertical: 32, alignItems: 'center', gap: 14 }, error: { color: '#B91C1C' }, empty: { fontSize: 16, fontWeight: '700', color: '#1E3A5A' },
+  pages: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, gap: 12 }, page: { minHeight: 44, justifyContent: 'center', borderWidth: 1, borderColor: '#D4AF37', borderRadius: 12, paddingHorizontal: 16 },
+  link: { color: '#1E3A5A', fontWeight: '700' }, disabled: { opacity: 0.35 },
 });

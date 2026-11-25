@@ -4,6 +4,9 @@ import { act, create } from 'react-test-renderer';
 import { useRouter } from 'expo-router';
 import { useLoginViewModel } from '../../viewmodels/useLoginViewModel';
 import LoginScreen from '../login';
+import { useNegocioViewModel } from '../../viewmodels/useNegocioViewModel';
+jest.mock('../../viewmodels/useNegocioViewModel', () => ({ useNegocioViewModel: jest.fn() }));
+jest.mock('@expo/vector-icons', () => ({ Feather: () => null, MaterialCommunityIcons: () => null }));
 
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(),
@@ -50,6 +53,7 @@ describe('HU-01 LoginScreen navegacion', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useRouterMock.mockReturnValue({ replace, push });
+    jest.mocked(useNegocioViewModel).mockReturnValue({ negocio: null, error: null });
   });
 
   afterEach(() => {
@@ -61,22 +65,16 @@ describe('HU-01 LoginScreen navegacion', () => {
   });
 
   it('navega a tabs solamente despues de un login valido', async () => {
-    const handleLogin = jest.fn().mockResolvedValue({ nombre: 'Cliente QA' });
+    let resolver!: (user: { nombre: string }) => void;
+    const handleLogin = jest.fn().mockReturnValue(new Promise(resolve => { resolver = resolve; }));
     useLoginViewModelMock.mockReturnValue(createViewModel(handleLogin));
     act(() => { renderer = create(<LoginScreen />); });
-    const button = findButtonByText(renderer.root, 'Iniciar Sesión');
-    let navigationCallback: (() => void) | undefined;
-    const timeoutSpy = jest.spyOn(globalThis, 'setTimeout').mockImplementation((callback) => {
-      navigationCallback = callback as () => void;
-      return 1 as any;
-    });
-
-    await act(async () => { await button.props.onPress(); });
+    const button = findButtonByText(renderer.root, 'Inicio de sesión');
+    let pendiente!: Promise<void>;
+    act(() => { pendiente = button.props.onPress(); });
     expect(handleLogin).toHaveBeenCalledTimes(1);
     expect(replace).not.toHaveBeenCalled();
-    expect(timeoutSpy).toHaveBeenCalledWith(expect.any(Function), 1400);
-
-    act(() => navigationCallback?.());
+    await act(async () => { resolver({ nombre: 'Cliente QA' }); await pendiente; });
     expect(replace).toHaveBeenCalledTimes(1);
     expect(replace).toHaveBeenCalledWith('/(tabs)');
   });
@@ -85,7 +83,7 @@ describe('HU-01 LoginScreen navegacion', () => {
     const handleLogin = jest.fn().mockResolvedValue(false);
     useLoginViewModelMock.mockReturnValue(createViewModel(handleLogin));
     act(() => { renderer = create(<LoginScreen />); });
-    const button = findButtonByText(renderer.root, 'Iniciar Sesión');
+    const button = findButtonByText(renderer.root, 'Inicio de sesión');
 
     await act(async () => { await button.props.onPress(); });
 
@@ -101,5 +99,19 @@ describe('HU-01 LoginScreen navegacion', () => {
     act(() => findButtonByText(renderer.root, 'Privacidad').props.onPress());
     expect(push).toHaveBeenNthCalledWith(1, '/terminos');
     expect(push).toHaveBeenNthCalledWith(2, '/privacidad');
+  });
+  it('presenta el nombre público del negocio sin textos exclusivos ni encabezado duplicado', () => {
+    useLoginViewModelMock.mockReturnValue(createViewModel(jest.fn()));
+    jest.mocked(useNegocioViewModel).mockReturnValue({ negocio: { id: 1, nombre: 'Salón actualizado desde la base', logo: null, direccion: null, telefono: null, horarioAtencion: null }, error: null });
+    act(() => { renderer = create(<LoginScreen />); });
+    const textos = () => renderer.root.findAllByType(Text).map((node: any) => node.props.children).filter((value: unknown) => typeof value === 'string');
+    expect(textos()).toContain('Acceso seguro · Salón actualizado desde la base');
+    expect(textos().join(' ')).not.toMatch(/exclusiv/i);
+    expect(renderer.root.findAllByType(Text).filter((node: any) => node.props.accessibilityRole === 'header')).toHaveLength(1);
+    jest.mocked(useNegocioViewModel).mockReturnValue({ negocio: null, error: 'No disponible' });
+    act(() => renderer.update(<LoginScreen />));
+    expect(textos()).toContain('Acceso seguro');
+    expect(textos().join(' ')).not.toContain('Salón actualizado');
+    expect(findButtonByText(renderer.root, 'Inicio de sesión')).toBeDefined();
   });
 });

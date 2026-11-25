@@ -4,6 +4,9 @@ import { useHomeViewModel } from '../useHomeViewModel';
 import { HomeRepository } from '../../repositories/homeRepository';
 import { sessionStore } from '../../services/sessionStore';
 import { ResumenCliente } from '../../models/Catalogo';
+jest.mock('expo-router', () => ({ useFocusEffect: (callback: () => (() => void) | undefined) => {
+  jest.requireActual('react').useEffect(callback, [callback]);
+} }));
 
 type Deferred<T> = {
   promise: Promise<T>;
@@ -55,7 +58,7 @@ const renderHook = () => {
   };
   let renderer: any;
   act(() => {
-    const TestRenderer = require('react-test-renderer');
+    const TestRenderer = jest.requireActual('react-test-renderer');
     renderer = TestRenderer.create(React.createElement(Component));
   });
   mountedRenderers.push(renderer);
@@ -105,6 +108,14 @@ describe('HU-11 useHomeViewModel', () => {
     expect(result.current.userNombre).toBe('Diana');
     expect(result.current.stats).toEqual(resumenValido.stats);
     expect(result.current.proximaCita).toEqual(resumenValido.nextCita);
+  });
+  it('acepta el precio DECIMAL de MySQL como texto y actualiza los contadores al recargar', async () => {
+    const { result } = await renderResolved({ ...resumenValido, nextCita: { ...resumenValido.nextCita, precioFinal: '450.00' } });
+    expect(result.current.proximaCita?.precioFinal).toBe(450);
+    jest.spyOn(HomeRepository, 'getResumenCliente').mockResolvedValueOnce({ ...resumenValido, stats: { total: 9, pendientes: 4, completadas: 5 } });
+    await act(async () => { result.current.actualizar(); });
+    expect(result.current.stats.total).toBe(9);
+    expect(HomeRepository.getResumenCliente).toHaveBeenCalledTimes(2);
   });
 
   it('prioriza el nombre valido de API sobre el nombre de sesion', async () => {

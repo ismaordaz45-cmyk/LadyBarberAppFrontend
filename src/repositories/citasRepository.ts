@@ -1,11 +1,11 @@
 import { apiClient, apiClientAuth } from '../services/api';
-import { DiaHorario, Empleada, Ocupacion, CitaPayload, PreferenciaPagoResponse } from '../models/Cita';
+import { DiaHorario, Empleada, Ocupacion, CitaPayload, PreferenciaPagoResponse, EstadoPagoCita, CitaResumen, CitaDetalle } from '../models/Cita';
 import { ServicioItem } from '../models/Servicio';
 import { ServiciosRepository } from './serviciosRepository';
 
 export const CitasRepository = {
   getServicios: async (): Promise<ServicioItem[]> => {
-    return ServiciosRepository.getServicios();
+    return ServiciosRepository.getServicios({ categoriaGenerica: false });
   },
 
   getHorarioNegocio: async (): Promise<DiaHorario[]> => {
@@ -27,13 +27,14 @@ export const CitasRepository = {
   },
 
   getOcupacion: async (fecha: string, empleadaId: number): Promise<Ocupacion[]> => {
-    try {
-      const data = await apiClient<Ocupacion[]>(`/citas/ocupacion?fecha=${fecha}&empleadaId=${empleadaId}`);
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return [];
-    }
+    return apiClientAuth<Ocupacion[]>(`/citas/ocupacion?fecha=${fecha}&empleadaId=${empleadaId}`);
   },
+
+  getMisCitas: async (offset = 0): Promise<CitaResumen[]> =>
+    apiClientAuth<CitaResumen[]>(`/citas/mis-citas?offset=${offset}`),
+
+  getDetalle: async (citaId: string): Promise<CitaDetalle> =>
+    apiClientAuth<CitaDetalle>(`/citas/${encodeURIComponent(citaId)}`),
 
   crearCita: async (payload: CitaPayload): Promise<{ citaId: string }> => {
     // Requires auth according to web implementation (actually the web uses api.post, but if it is an authenticated user, we should use apiClientAuth)
@@ -51,9 +52,12 @@ export const CitasRepository = {
   },
 
   crearPreferenciaPago: async (citaId: string): Promise<PreferenciaPagoResponse> => {
-    return apiClientAuth<PreferenciaPagoResponse>('/mercado-pago/crear-preferencia-cita', {
+    return apiClientAuth<PreferenciaPagoResponse>(`/citas/${encodeURIComponent(citaId)}/pago/preferencia`, {
       method: 'POST',
-      body: JSON.stringify({ citaId }),
     });
-  }
+  },
+
+  getEstadoPago: async (citaId: string): Promise<EstadoPagoCita> => {
+    return apiClientAuth<EstadoPagoCita>(`/citas/${encodeURIComponent(citaId)}/pago/estado`);
+  },
 };

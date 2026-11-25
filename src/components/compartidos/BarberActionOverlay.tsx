@@ -1,5 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Modal, Animated } from 'react-native';
+import { useThemedStyles } from '../../hooks/use-themed-styles';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, Modal, Animated } from 'react-native';
+import { Text } from './TextoApp';
 import { BarberPole } from './BarberPole';
 
 interface BarberActionOverlayProps {
@@ -22,8 +24,9 @@ export const BarberActionOverlay: React.FC<BarberActionOverlayProps> = ({
   message = 'Creando tu cuenta...',
   isSuccess = false,
 }) => {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.92)).current;
+  const styles = useThemedStyles(baseStyles);
+  const [fadeAnim] = useState(() => new Animated.Value(0));
+  const [scaleAnim] = useState(() => new Animated.Value(0.92));
 
   useEffect(() => {
     if (visible) {
@@ -80,7 +83,7 @@ export const BarberActionOverlay: React.FC<BarberActionOverlayProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.82)',

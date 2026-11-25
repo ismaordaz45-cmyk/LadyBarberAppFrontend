@@ -1,25 +1,20 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Image,
-  ActivityIndicator,
-} from 'react-native';
+import { useThemedStyles } from '../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../viewmodels/useAparienciaViewModel';
+import React from 'react';
+import { View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text } from '../components/compartidos/TextoApp';
 import { useRouter } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLoginViewModel } from '../viewmodels/useLoginViewModel';
+import { useNegocioViewModel } from '../viewmodels/useNegocioViewModel';
 import { BarberPole } from '../components/compartidos/BarberPole';
-import { BarberActionOverlay } from '../components/compartidos/BarberActionOverlay';
 
 export default function LoginScreen() {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   const router = useRouter();
+  const { negocio } = useNegocioViewModel();
   const {
     correo,
     setCorreo,
@@ -32,36 +27,9 @@ export default function LoginScreen() {
     handleLogin,
   } = useLoginViewModel();
 
-  const [showOverlay, setShowOverlay] = useState(false);
-  const [overlayHeadline, setOverlayHeadline] = useState('¡Bienvenido!');
-  const [overlayMessage, setOverlayMessage] = useState('Iniciando sesión...');
-  const [overlaySuccess, setOverlaySuccess] = useState(false);
-
   const onSubmit = async () => {
-    if (!correo.trim() || !password) {
-      await handleLogin();
-      return;
-    }
-
-    setShowOverlay(true);
-    setOverlayHeadline('¡Bienvenido!');
-    setOverlayMessage('Comprobando tus credenciales...');
-    setOverlaySuccess(false);
-
     const user = await handleLogin();
-    if (user) {
-      const nombreUsuario = user.nombre ? user.nombre.split(' ')[0] : 'Cliente';
-      setOverlayHeadline(`¡Hola, ${nombreUsuario}!`);
-      setOverlayMessage('Acceso concedido. Entrando a tu espacio exclusivo...');
-      setOverlaySuccess(true);
-
-      setTimeout(() => {
-        setShowOverlay(false);
-        router.replace('/(tabs)');
-      }, 1400);
-    } else {
-      setShowOverlay(false);
-    }
+    if (user) router.replace('/(tabs)');
   };
 
   return (
@@ -76,12 +44,6 @@ export default function LoginScreen() {
           bounces={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header Superior sutil */}
-          <View style={styles.topBar}>
-            <Text style={styles.topBarTitle}>Inicio de Sesión</Text>
-            <BarberPole size={26} width={9} speedMs={1100} />
-          </View>
-
           {/* Sección Central de Bienvenida y Logo */}
           <View style={styles.headerSection}>
             {/* Logo de Lady Barber Itzá D'M */}
@@ -93,21 +55,15 @@ export default function LoginScreen() {
               />
             </View>
 
-            {/* Badge de Acceso Exclusivo */}
-            <View style={styles.badgeContainer}>
-              <MaterialCommunityIcons
-                name="star-four-points"
-                size={12}
-                color="#B47D22"
-                style={styles.badgeIcon}
-              />
-              <Text style={styles.badgeText}>ACCESO EXCLUSIVO</Text>
-            </View>
-
             {/* Título Principal */}
-            <Text style={styles.mainTitle}>Iniciar Sesión</Text>
+            <View style={styles.titleRow}>
+              <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                <BarberPole size={26} width={9} speedMs={1100} />
+              </View>
+              <Text accessibilityRole="header" style={styles.mainTitle}>Inicio de sesión</Text>
+            </View>
             <Text style={styles.mainSubtitle}>
-              Bienvenida a tu espacio exclusivo de belleza
+              Te damos la bienvenida
             </Text>
           </View>
 
@@ -116,26 +72,26 @@ export default function LoginScreen() {
             {/* Mensaje de Error si falla la autenticación */}
             {error && (
               <View style={styles.errorBanner}>
-                <Feather name="alert-circle" size={16} color="#DC2626" />
+                <Feather name="alert-circle" size={16} color={apariencia.color("#DC2626")} />
                 <Text style={styles.errorBannerText}>{error}</Text>
               </View>
             )}
 
-            {/* Campo: Correo o Usuario */}
+            {/* Campo: Correo electrónico */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Correo o Usuario</Text>
+              <Text style={styles.fieldLabel}>Correo electrónico</Text>
               <View style={styles.inputContainer}>
-                <Feather name="at-sign" size={17} color="#94A3B8" style={styles.inputIcon} />
+                <Feather name="at-sign" size={17} color={apariencia.color("#94A3B8")} style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
-                  placeholder="ejemplo@itzadm.com"
-                  placeholderTextColor="#94A3B8"
+                  placeholder="Ingresa tu correo electrónico"
+                  placeholderTextColor={apariencia.color("#94A3B8")}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={correo}
                   onChangeText={setCorreo}
-                  editable={!isLoading}
+                  editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
                 />
               </View>
             </View>
@@ -153,17 +109,17 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.inputContainer}>
-                <Feather name="lock" size={17} color="#94A3B8" style={styles.inputIcon} />
+                <Feather name="lock" size={17} color={apariencia.color("#94A3B8")} style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="••••••••••••"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor={apariencia.color("#94A3B8")}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={password}
                   onChangeText={setPassword}
-                  editable={!isLoading}
+                  editable={!isLoading} keyboardAppearance={apariencia.esOscuro ? 'dark' : 'light'}
                 />
                 <TouchableOpacity
                   onPress={togglePasswordVisibility}
@@ -173,7 +129,7 @@ export default function LoginScreen() {
                   <Feather
                     name={showPassword ? 'eye-off' : 'eye'}
                     size={18}
-                    color="#94A3B8"
+                    color={apariencia.color("#94A3B8")}
                   />
                 </TouchableOpacity>
               </View>
@@ -187,11 +143,11 @@ export default function LoginScreen() {
               activeOpacity={0.85}
             >
               {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <ActivityIndicator color={apariencia.color("#FFFFFF")} size="small" />
               ) : (
                 <View style={styles.loginBtnContent}>
-                  <Text style={styles.loginBtnText}>Iniciar Sesión</Text>
-                  <Feather name="arrow-right" size={18} color="#F5C26B" style={styles.arrowIcon} />
+                  <Text style={styles.loginBtnText}>Inicio de sesión</Text>
+                  <Feather name="arrow-right" size={18} color={apariencia.color("#F5C26B")} style={styles.arrowIcon} />
                 </View>
               )}
             </TouchableOpacity>
@@ -223,28 +179,21 @@ export default function LoginScreen() {
             <MaterialCommunityIcons
               name="shield-check-outline"
               size={15}
-              color="#D97706"
+              color={apariencia.color("#D97706")}
               style={styles.shieldIcon}
             />
             <Text style={styles.footerText}>
-              Acceso seguro & exclusivo • Lady Barber Itzá D'M
+              {negocio?.nombre ? `Acceso seguro · ${negocio.nombre}` : 'Acceso seguro'}
             </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Overlay Barber Pole en movimiento al iniciar sesión / bienvenida */}
-      <BarberActionOverlay
-        visible={showOverlay}
-        headline={overlayHeadline}
-        message={overlayMessage}
-        isSuccess={overlaySuccess}
-      />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#F8F9FA',
@@ -269,20 +218,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 22,
+    paddingTop: 24,
     paddingBottom: 36,
-  },
-  topBar: {
-    paddingTop: Platform.OS === 'android' ? 14 : 6,
-    paddingBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  topBarTitle: {
-    color: '#94A3B8',
-    fontSize: 15,
-    fontWeight: '500',
-    letterSpacing: 0.2,
   },
   headerSection: {
     alignItems: 'center',
@@ -306,31 +243,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  badgeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFDF5',
-    borderWidth: 1,
-    borderColor: '#F3D17A',
-    borderRadius: 20,
-    paddingVertical: 4.5,
-    paddingHorizontal: 14,
-    marginBottom: 14,
-  },
-  badgeIcon: {
-    marginRight: 5,
-  },
-  badgeText: {
-    color: '#B47D22',
-    fontSize: 10.5,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-  },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 6, maxWidth: '100%' },
   mainTitle: {
     color: '#0F172A',
     fontSize: 26,
     fontWeight: '700',
-    marginBottom: 6,
+    flexShrink: 1,
     letterSpacing: -0.4,
   },
   mainSubtitle: {
@@ -460,6 +378,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 8,
   },
   shieldIcon: {
     marginRight: 6,
@@ -467,5 +386,7 @@ const styles = StyleSheet.create({
   footerText: {
     color: '#94A3B8',
     fontSize: 11.5,
+    flexShrink: 1,
+    textAlign: 'center',
   },
 });

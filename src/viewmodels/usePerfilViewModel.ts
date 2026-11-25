@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   ActualizarPerfilRequest,
   ResumenPerfilCliente,
@@ -132,9 +133,11 @@ export const usePerfilViewModel = () => {
     }
   }, []);
 
-  useEffect(() => {
-    void cargarPerfil();
-  }, [cargarPerfil]);
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    void Promise.resolve().then(() => { if (active) return cargarPerfil(); });
+    return () => { active = false; };
+  }, [cargarPerfil]));
 
   const openEditModal = () => {
     if (!perfil) return;

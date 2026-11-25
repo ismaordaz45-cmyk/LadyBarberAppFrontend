@@ -10,6 +10,8 @@ export const useServiciosViewModel = () => {
   const [busqueda, setBusqueda] = useState('');
   const [servicioSeleccionado, setServicioSeleccionado] = useState<ServicioItem | null>(null);
   const [modalDetalleVisible, setModalDetalleVisible] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  const [revision, setRevision] = useState(0);
 
   useEffect(() => {
     let cancel = false;
@@ -17,7 +19,7 @@ export const useServiciosViewModel = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await ServiciosRepository.getServicios();
+        const data = await ServiciosRepository.getServicios({ categoriaGenerica: false });
         if (!cancel) {
           setServicios(data);
         }
@@ -34,7 +36,7 @@ export const useServiciosViewModel = () => {
     return () => {
       cancel = true;
     };
-  }, []);
+  }, [revision]);
 
   // Categorías derivadas dinámicamente de los datos reales del API
   const categoriasDisponibles: CategoriaServicio[] = useMemo(() => {
@@ -77,11 +79,15 @@ export const useServiciosViewModel = () => {
     isLoading,
     error,
     categoriaActiva,
-    setCategoriaActiva,
+    setCategoriaActiva: (value: CategoriaServicio) => { setCategoriaActiva(value); setPagina(1); },
     busqueda,
-    setBusqueda,
+    setBusqueda: (value: string) => { setBusqueda(value); setPagina(1); },
     categoriasDisponibles,
-    servicios: serviciosFiltrados,
+    servicios: serviciosFiltrados.slice((pagina - 1) * 6, pagina * 6),
+    pagina,
+    totalPaginas: Math.max(1, Math.ceil(serviciosFiltrados.length / 6)),
+    cambiarPagina: (value: number) => setPagina(Math.max(1, Math.min(value, Math.max(1, Math.ceil(serviciosFiltrados.length / 6))))),
+    reintentar: () => setRevision(value => value + 1),
     totalServicios: serviciosFiltrados.length,
     servicioSeleccionado,
     modalDetalleVisible,

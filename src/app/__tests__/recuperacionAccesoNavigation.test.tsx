@@ -4,6 +4,7 @@ import { act, create } from 'react-test-renderer';
 import { useRouter } from 'expo-router';
 import { useLoginViewModel } from '../../viewmodels/useLoginViewModel';
 import LoginScreen from '../login';
+jest.mock('../../viewmodels/useNegocioViewModel', () => ({ useNegocioViewModel: () => ({ negocio: null, error: null }) }));
 
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(),

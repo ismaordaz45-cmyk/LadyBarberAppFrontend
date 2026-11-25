@@ -6,6 +6,7 @@ import { usePerfilViewModel } from '../../viewmodels/usePerfilViewModel';
 import PerfilScreen from '../(tabs)/perfil';
 
 jest.mock('expo-router', () => ({ useRouter: jest.fn() }));
+jest.mock('@expo/vector-icons', () => ({ Feather: () => null }));
 jest.mock('../../viewmodels/usePerfilViewModel', () => ({
   usePerfilViewModel: jest.fn(),
 }));
@@ -102,13 +103,19 @@ describe('HU-03 PerfilScreen', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useRouterMock.mockReturnValue({ replace, push });
+    useRouterMock.mockReturnValue({ replace, push, navigate: push });
   });
 
   afterEach(() => {
     if (renderer) act(() => renderer.unmount());
     renderer = null;
     jest.restoreAllMocks();
+  });
+  it('abre Mis compras desde Perfil conservando el navegador de pestañas', () => {
+    usePerfilViewModelMock.mockReturnValue(createViewModel());
+    act(() => { renderer = create(<PerfilScreen />); });
+    act(() => findButtonByText(renderer.root, 'Mis compras y comprobantes').props.onPress());
+    expect(push).toHaveBeenCalledWith('/(tabs)/compras');
   });
 
   it('muestra datos reales, estadísticas y abre la edición', () => {
@@ -227,8 +234,20 @@ describe('HU-03 PerfilScreen', () => {
     const button = findButtonByText(renderer.root, 'Cerrar sesión');
     act(() => button.props.onPress());
     expect(viewModel.handleCerrarSesion).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
+    act(() => findButtonByText(renderer.root, 'Sí, cerrar sesión').props.onPress());
     act(() => timeoutCallback?.());
     expect(viewModel.handleCerrarSesion).toHaveBeenCalledTimes(1);
     expect(replace).toHaveBeenCalledWith('/login');
+  });
+  it('conserva la sesión si el cliente no confirma la salida', () => {
+    const viewModel = createViewModel();
+    usePerfilViewModelMock.mockReturnValue(viewModel);
+    act(() => { renderer = create(<PerfilScreen />); });
+    act(() => findButtonByText(renderer.root, 'Cerrar sesión').props.onPress());
+    act(() => findButtonByText(renderer.root, 'Seguir en mi cuenta').props.onPress());
+    expect(viewModel.handleCerrarSesion).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
+    expect(findButtonByText(renderer.root, 'Sí, cerrar sesión')).toBeUndefined();
   });
 });

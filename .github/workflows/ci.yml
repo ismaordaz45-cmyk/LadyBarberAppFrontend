@@ -80,8 +80,11 @@ jobs:
       - name: Comprobación de tipos TypeScript
         run: npx tsc --noEmit
 
+      - name: Comprobar lint
+        run: npm run lint
+
       - name: Ejecutar pruebas unitarias
-        run: npm test
+        run: npm test -- --runInBand
 
   android-build:
     name: Compilación Android firmada
@@ -126,7 +129,9 @@ jobs:
         id: android-config
         shell: bash
         run: |
-          echo "artifact_name=ladybarber-v0.1.0-production.aab" >> "$GITHUB_OUTPUT"
+          app_version="$(node -p 'require("./app.json").expo.version')"
+          version_code="$(node -p 'require("./app.json").expo.android.versionCode')"
+          echo "artifact_name=ladybarber-v${app_version}-${version_code}-production.aab" >> "$GITHUB_OUTPUT"
 
       - name: Compilar Android en EAS
         env:

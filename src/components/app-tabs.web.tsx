@@ -1,3 +1,5 @@
+import { useThemedStyles } from '../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../viewmodels/useAparienciaViewModel';
 import {
   Tabs,
   TabList,
@@ -7,7 +9,8 @@ import {
   TabListProps,
 } from 'expo-router/ui';
 import { SymbolView } from 'expo-symbols';
-import { Pressable, useColorScheme, View, StyleSheet } from 'react-native';
+import { Pressable, View, StyleSheet } from 'react-native';
+import { useColorScheme } from '../hooks/use-color-scheme';
 
 import { ExternalLink } from './external-link';
 import { ThemedText } from './themed-text';
@@ -34,6 +37,7 @@ export default function AppTabs() {
 }
 
 export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
+  const styles = useThemedStyles(baseStyles);
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
       <ThemedView
@@ -48,6 +52,8 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
 }
 
 export function CustomTabList(props: TabListProps) {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
 
@@ -64,7 +70,7 @@ export function CustomTabList(props: TabListProps) {
           <Pressable style={styles.externalPressable}>
             <ThemedText type="link">Docs</ThemedText>
             <SymbolView
-              tintColor={colors.text}
+              tintColor={apariencia.color(colors.text)}
               name={{ ios: 'arrow.up.right.square', web: 'link' }}
               size={12}
             />
@@ -75,7 +81,7 @@ export function CustomTabList(props: TabListProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   tabListContainer: {
     position: 'absolute',
     width: '100%',

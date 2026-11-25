@@ -1,3 +1,5 @@
+import { useThemedStyles } from '../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../viewmodels/useAparienciaViewModel';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
@@ -12,6 +14,8 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function TabTwoScreen() {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   const safeAreaInsets = useSafeAreaInsets();
   const insets = {
     ...safeAreaInsets,
@@ -34,7 +38,7 @@ export default function TabTwoScreen() {
 
   return (
     <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
+      style={[styles.scrollView, { backgroundColor: apariencia.color(theme.background, 'background') }]}
       contentInset={insets}
       contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
       <ThemedView style={styles.container}>
@@ -49,7 +53,7 @@ export default function TabTwoScreen() {
               <ThemedView type="backgroundElement" style={styles.linkButton}>
                 <ThemedText type="link">Expo documentation</ThemedText>
                 <SymbolView
-                  tintColor={theme.text}
+                  tintColor={apariencia.color(theme.text)}
                   name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
                   size={12}
                 />
@@ -125,7 +129,7 @@ export default function TabTwoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },

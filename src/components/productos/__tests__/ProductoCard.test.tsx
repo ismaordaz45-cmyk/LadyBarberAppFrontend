@@ -41,6 +41,21 @@ const allText = (renderer: any): string => renderer.root.findAllByType(Text)
   .join('|');
 
 describe('HU-04 ProductoCard', () => {
+  it('permite agregar solo mientras exista stock y el carrito esté preparado', () => {
+    const agregar = jest.fn();
+    let renderer: any;
+    act(() => { renderer = create(<ProductoCard item={producto} onAgregar={agregar} cantidad={7} />); });
+    const agregarButton = () => renderer.root.findAllByType(TouchableOpacity).find((node: any) => node.props.accessibilityLabel === 'Agregar Aceite Premium al carrito');
+    const button = agregarButton();
+    expect(button.props.disabled).toBe(false);
+    act(() => button.props.onPress()); expect(agregar).toHaveBeenCalledTimes(1);
+    act(() => renderer.update(<ProductoCard item={producto} onAgregar={agregar} cantidad={8} />));
+    expect(agregarButton().props.disabled).toBe(true);
+    expect(allText(renderer)).toContain('Máximo en carrito');
+    act(() => renderer.update(<ProductoCard item={{ ...producto, stockActual: undefined }} onAgregar={agregar} />));
+    expect(agregarButton().props.disabled).toBe(true);
+    act(() => renderer.unmount());
+  });
   it('presenta nombre, categoria, subtitulo, precio MXN e imagen', () => {
     const { renderer } = renderCard();
     const text = allText(renderer);
@@ -107,17 +122,17 @@ describe('HU-04 ProductoCard', () => {
   it('muestra la disponibilidad sin ofrecer una compra todavia', () => {
     const disponible = renderCard();
     expect(allText(disponible.renderer)).toContain('Stock: 8');
-    expect(disponible.renderer.root.findAllByType(TouchableOpacity)).toHaveLength(0);
+    expect(disponible.renderer.root.findAllByType(TouchableOpacity).filter((node: any) => node.props.accessibilityLabel?.startsWith('Agregar '))).toHaveLength(0);
     act(() => disponible.renderer.unmount());
 
     const agotado = renderCard({ ...producto, stockActual: 0 });
     expect(allText(agotado.renderer)).toContain('Agotado');
-    expect(agotado.renderer.root.findAllByType(TouchableOpacity)).toHaveLength(0);
+    expect(agotado.renderer.root.findAllByType(TouchableOpacity).filter((node: any) => node.props.accessibilityLabel?.startsWith('Agregar '))).toHaveLength(0);
     act(() => agotado.renderer.unmount());
 
     const sinDato = renderCard({ ...producto, stockActual: undefined });
-    expect(allText(sinDato.renderer)).toContain('Disponible');
-    expect(sinDato.renderer.root.findAllByType(TouchableOpacity)).toHaveLength(0);
+    expect(allText(sinDato.renderer)).toContain('Consultar existencias');
+    expect(sinDato.renderer.root.findAllByType(TouchableOpacity).filter((node: any) => node.props.accessibilityLabel?.startsWith('Agregar '))).toHaveLength(0);
     act(() => sinDato.renderer.unmount());
   });
 });

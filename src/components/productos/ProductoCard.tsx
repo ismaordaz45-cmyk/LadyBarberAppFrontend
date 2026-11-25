@@ -1,35 +1,36 @@
+import { useThemedStyles } from '../../hooks/use-themed-styles';
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { limiteProducto } from '../../models/Carrito';
+import { ImagenProducto } from './ImagenProducto';
+import { Text } from '../compartidos/TextoApp';
 import { ProductoItem } from '../../models/Producto';
 
 interface ProductoCardProps {
   item: ProductoItem;
+  onAgregar?: () => void;
+  onVerProducto?: () => void;
+  cantidad?: number;
+  bloqueado?: boolean;
 }
 
-export const ProductoCard: React.FC<ProductoCardProps> = ({ item }) => {
-  const [imageFailed, setImageFailed] = React.useState(false);
-  const hasRemoteImage = /^(https?:\/\/\S+|data:image\/[^;]+;base64,)/i.test(item.imagenUrl || '');
-  const imageSource = hasRemoteImage && !imageFailed
-    ? { uri: item.imagenUrl }
-    : require('../../../assets/images/logo-itza.png');
+export const ProductoCard: React.FC<ProductoCardProps> = ({ item, onAgregar, onVerProducto, cantidad = 0, bloqueado = false }) => {
+  const styles = useThemedStyles(baseStyles);
   const safePrice = Number.isFinite(item.precioMXN) && item.precioMXN >= 0
     ? item.precioMXN
     : 0;
   const stockLabel = typeof item.stockActual === 'number'
     ? item.stockActual > 0 ? `Stock: ${item.stockActual}` : 'Agotado'
-    : 'Disponible';
+    : 'Consultar existencias';
   const isOutOfStock = item.stockActual === 0;
 
   return (
     <View style={styles.card}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Ver producto ${item.nombre}`}
+        accessibilityHint="Abre la imagen y la información del producto" disabled={!onVerProducto} onPress={onVerProducto} activeOpacity={0.8}>
       {/* Imagen Superior con Badge */}
       <View style={styles.imageWrapper}>
-        <Image
-          source={imageSource}
-          style={styles.image}
-          resizeMode="cover"
-          onError={() => setImageFailed(true)}
-        />
+        <ImagenProducto uri={item.imagenUrl} nombre={item.nombre} style={styles.image} />
 
         {item.badge && (
           <View
@@ -53,14 +54,15 @@ export const ProductoCard: React.FC<ProductoCardProps> = ({ item }) => {
       {/* Contenido descriptivo */}
       <View style={styles.content}>
         <Text style={styles.category}>{item.categoriaEtiqueta}</Text>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={styles.name} numberOfLines={2}>
           {item.nombre}
         </Text>
         <Text style={styles.subtitle} numberOfLines={1}>
           {item.subtitulo}
         </Text>
+        {!!item.descripcion && <Text style={styles.subtitle} numberOfLines={2}>{item.descripcion}</Text>}
 
-        {/* Precio y disponibilidad informativa; la compra aún no está habilitada. */}
+        {/* El carrito limita cantidades; la compra se validará en el servidor. */}
         <View style={styles.footerRow}>
           <View>
             <Text style={styles.priceLabel}>Precio</Text>
@@ -77,13 +79,20 @@ export const ProductoCard: React.FC<ProductoCardProps> = ({ item }) => {
           </View>
         </View>
       </View>
+      </TouchableOpacity>
+      {onAgregar && <View style={styles.actions}><TouchableOpacity accessibilityRole="button" accessibilityLabel={`Agregar ${item.nombre} al carrito`}
+          disabled={bloqueado || cantidad >= limiteProducto(item)} onPress={onAgregar}
+          style={[styles.addButton, (bloqueado || cantidad >= limiteProducto(item)) && styles.disabled]}>
+          <Text style={styles.addText}>{limiteProducto(item) === 0 ? 'No disponible' : cantidad >= limiteProducto(item) ? 'Máximo en carrito' : cantidad > 0 ? `Agregar · ${cantidad} en carrito` : 'Agregar al carrito'}</Text>
+        </TouchableOpacity></View>}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
+  actions: { paddingHorizontal: 10, paddingBottom: 10 },
   card: {
-    width: '48%',
+    width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     overflow: 'hidden',
@@ -96,6 +105,9 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
+  addButton: { backgroundColor: '#1E3A5A', paddingVertical: 12, paddingHorizontal: 8, borderRadius: 10, marginTop: 12, minHeight: 44, justifyContent: 'center' },
+  addText: { color: '#FFFFFF', textAlign: 'center', fontSize: 12, fontWeight: '700' },
+  disabled: { opacity: 0.45 },
   imageWrapper: {
     width: '100%',
     height: 124,
@@ -159,6 +171,8 @@ const styles = StyleSheet.create({
   },
   footerRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     marginTop: 2,

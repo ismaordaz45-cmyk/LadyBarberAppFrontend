@@ -83,6 +83,17 @@ describe('HU-12 ServiciosRepository', () => {
       }),
     ]);
   });
+  it('preserva las categorías reales al agendar sin fabricar General para valores vacíos', async () => {
+    apiClientMock.mockResolvedValueOnce([
+      { ...servicioActivo, categoria: null },
+      { ...servicioActivo, id: 8, categoria: '  ' },
+      { ...servicioActivo, id: 9, categoria: ' General ' },
+    ] as never);
+    const servicios = await ServiciosRepository.getServicios({ categoriaGenerica: false });
+    expect(servicios.map(s => s.categoria)).toEqual(['', '', 'General']);
+    expect(apiClientMock).toHaveBeenCalledTimes(1);
+    expect(apiClientMock).toHaveBeenCalledWith('/servicios');
+  });
 
   it.each([[], {}, null, 'respuesta inesperada']) (
     'convierte una respuesta no-array o vacia en lista vacia: %p',

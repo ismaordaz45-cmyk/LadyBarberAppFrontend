@@ -4,14 +4,14 @@ import { ServicioAPI, ServicioItem } from '../models/Servicio';
 /**
  * Normaliza un registro crudo del API al modelo de UI ServicioItem.
  */
-function normalizar(api: ServicioAPI): ServicioItem {
+function normalizar(api: ServicioAPI, categoriaGenerica: boolean): ServicioItem {
   return {
     id: String(api.id),
     nombre: api.nombre ?? '',
     descripcion: api.descripcion ?? '',
     precioMXN: Number(api.precio) || 0,
     duracionMin: Number(api.duracion) || 0,
-    categoria: String(api.categoria ?? '').trim() || 'General',
+    categoria: String(api.categoria ?? '').trim() || (categoriaGenerica ? 'General' : ''),
     imagenUrl: api.imagenUrl ?? null,
     estaActivo: api.estaActivo === 1,
   };
@@ -29,11 +29,11 @@ function esServicioActivoValido(value: unknown): value is ServicioAPI {
  * Repositorio real que consulta GET /api/servicios del backend.
  */
 export const ServiciosRepository = {
-  async getServicios(): Promise<ServicioItem[]> {
+  async getServicios({ categoriaGenerica = true }: { categoriaGenerica?: boolean } = {}): Promise<ServicioItem[]> {
     const data = await apiClient<ServicioAPI[]>('/servicios');
     if (!Array.isArray(data)) return [];
     return data
       .filter(esServicioActivoValido)
-      .map(normalizar);
+      .map(item => normalizar(item, categoriaGenerica));
   },
 };

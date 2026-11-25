@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ProductoItem, CategoriaProducto } from '../models/Producto';
 import { ProductosRepository } from '../repositories/productosRepository';
 
@@ -40,6 +40,8 @@ const normalizeProducto = (value: unknown): ProductoItem | null => {
     precioMXN,
     imagenUrl: stringValue(value.imagenUrl),
     descripcion: stringValue(value.descripcion),
+    ...(typeof value.stockActual === 'number' && Number.isFinite(value.stockActual)
+      ? { stockActual: Math.max(0, value.stockActual) } : {}),
     ...(stringValue(value.volumen) ? { volumen: stringValue(value.volumen) } : {}),
     ...(badge ? { badge } : {}),
   };
@@ -57,6 +59,10 @@ export const useProductosViewModel = () => {
   const [categoriaActiva, setCategoriaActiva] = useState<CategoriaProducto>('Todos');
   const [busqueda, setBusqueda] = useState('');
   const [ordenAscendente, setOrdenAscendente] = useState<boolean | null>(null);
+  const [soloDisponibles, setSoloDisponibles] = useState(false);
+  const [limite, setLimite] = useState(6);
+  const [revision, setRevision] = useState(0);
+  const [productoDetalleId, setProductoDetalleId] = useState<string | null>(null);
 
   const categoriasDisponibles = useMemo<CategoriaProducto[]>(() => [
     'Todos',
@@ -92,22 +98,23 @@ export const useProductosViewModel = () => {
     return () => {
       cancel = true;
     };
-  }, []);
+  }, [revision]);
 
   const productosFiltrados = useMemo(() => {
     let lista = productos.filter((p) => {
       const cumpleCategoria =
         categoriaActiva === 'Todos' || p.categoria === categoriaActiva;
 
-      const q = busqueda.trim().toLowerCase();
+      const normalizar = (texto: string) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const q = normalizar(busqueda.trim());
       const cumpleBusqueda =
         !q ||
-        p.nombre.toLowerCase().includes(q) ||
-        p.categoriaEtiqueta.toLowerCase().includes(q) ||
-        p.subtitulo.toLowerCase().includes(q) ||
-        p.descripcion.toLowerCase().includes(q);
+        normalizar(p.nombre).includes(q) ||
+        normalizar(p.categoriaEtiqueta).includes(q) ||
+        normalizar(p.subtitulo).includes(q) ||
+        normalizar(p.descripcion).includes(q);
 
-      return cumpleCategoria && cumpleBusqueda;
+      return cumpleCategoria && cumpleBusqueda && (!soloDisponibles || (p.stockActual ?? 0) >= 1);
     });
 
     if (ordenAscendente !== null) {
@@ -117,9 +124,10 @@ export const useProductosViewModel = () => {
     }
 
     return lista;
-  }, [productos, categoriaActiva, busqueda, ordenAscendente]);
+  }, [productos, categoriaActiva, busqueda, ordenAscendente, soloDisponibles]);
 
   const toggleOrden = () => {
+    setLimite(6);
     setOrdenAscendente((prev) => {
       if (prev === null) return true; // Menor a mayor
       if (prev === true) return false; // Mayor a menor
@@ -127,15 +135,25 @@ export const useProductosViewModel = () => {
     });
   };
 
+  const recargar = useCallback(() => setRevision(prev => prev + 1), []);
   return {
     isLoading,
     error,
     categoriaActiva,
-    setCategoriaActiva,
+    setCategoriaActiva: (categoria: CategoriaProducto) => { setCategoriaActiva(categoria); setLimite(6); },
     busqueda,
-    setBusqueda,
+    setBusqueda: (texto: string) => { setBusqueda(texto); setLimite(6); },
     categoriasDisponibles,
     productos: productosFiltrados,
+    catalogo: productos,
+    productoDetalle: productos.find(producto => producto.id === productoDetalleId) ?? null,
+    abrirDetalle: (producto: ProductoItem) => setProductoDetalleId(producto.id),
+    cerrarDetalle: () => setProductoDetalleId(null),
+    productosVisibles: productosFiltrados.slice(0, limite),
+    hayMas: limite < productosFiltrados.length,
+    verMas: () => setLimite(prev => prev + 6),
+    soloDisponibles, setSoloDisponibles: (valor: boolean) => { setSoloDisponibles(valor); setLimite(6); },
+    recargar,
     totalArticulos: productosFiltrados.length,
     ordenAscendente,
     toggleOrden,

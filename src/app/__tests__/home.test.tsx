@@ -2,13 +2,20 @@ import React from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import { act, create } from 'react-test-renderer';
 import HomeScreen from '../(tabs)/index';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NegocioRepository } from '../../repositories/negocioRepository';
+import { abrirIndicaciones } from '../../services/ubicacionService';
+jest.mock('../../repositories/negocioRepository', () => ({ NegocioRepository: { obtener: jest.fn() } }));
+jest.mock('../../services/ubicacionService', () => ({ abrirIndicaciones: jest.fn() }));
 
 const mockPush = jest.fn();
 const mockUseHomeViewModel = jest.fn();
 const mockScrollTo = jest.fn();
+jest.mock('../../components/compartidos/EncabezadoModulo', () => ({ EncabezadoModulo: () => null }));
+jest.mock('../../viewmodels/useNegocioViewModel', () => ({ useNegocioViewModel: () => ({ negocio: null }) }));
 
 jest.mock('react-native/Libraries/Components/ScrollView/ScrollView', () => {
-  const ReactModule = require('react');
+  const ReactModule = jest.requireActual('react');
   const MockScrollView = ReactModule.forwardRef((props: any, ref: any) => {
     ReactModule.useImperativeHandle(ref, () => ({ scrollTo: mockScrollTo }));
     return ReactModule.createElement('ScrollView', props, props.children);
@@ -17,7 +24,8 @@ jest.mock('react-native/Libraries/Components/ScrollView/ScrollView', () => {
 });
 
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, navigate: mockPush }),
+  useFocusEffect: (callback: () => (() => void) | undefined) => { jest.requireActual('react').useEffect(callback, [callback]); },
 }));
 
 jest.mock('../../viewmodels/useHomeViewModel', () => ({
@@ -25,16 +33,20 @@ jest.mock('../../viewmodels/useHomeViewModel', () => ({
 }));
 
 jest.mock('../../components/servicios/ServiciosSection', () => {
-  const ReactModule = require('react');
-  const { Text: NativeText } = require('react-native');
+  const ReactModule = jest.requireActual('react');
+  const { Text: NativeText } = jest.requireActual('react-native');
   return {
-    ServiciosSection: () => ReactModule.createElement(NativeText, null, 'Sección Servicios simulada'),
+    ServiciosSection: ReactModule.forwardRef(({ cabecera }: any, ref: any) => {
+      ReactModule.useImperativeHandle(ref, () => ({ mostrarServicios: mockScrollTo }));
+      return ReactModule.createElement(ReactModule.Fragment, null, cabecera,
+        ReactModule.createElement(NativeText, null, 'Sección Servicios simulada'));
+    }),
   };
 });
 
 jest.mock('@expo/vector-icons', () => {
-  const ReactModule = require('react');
-  const { Text: NativeText } = require('react-native');
+  const ReactModule = jest.requireActual('react');
+  const { Text: NativeText } = jest.requireActual('react-native');
   const Icon = (props: any) => ReactModule.createElement(NativeText, props, props.name);
   return { Feather: Icon, Ionicons: Icon, MaterialCommunityIcons: Icon };
 });
@@ -79,14 +91,33 @@ describe('HU-11 HomeScreen', () => {
   it('presenta el estado de carga sin contenido personalizado', () => {
     const { renderer } = renderHome({ isLoading: true });
     expect(allText(renderer)).toContain('Cargando tu panel...');
-    expect(allText(renderer)).not.toContain('¡Hola, Diana! ✨');
+    expect(allText(renderer)).not.toContain('¡Hola, Diana!');
+    act(() => renderer.unmount());
+  });
+  it('abre Ubicación sobre Inicio y dirige a Maps con los datos publicados sin cambiar de pestaña', async () => {
+    (NegocioRepository.obtener as jest.Mock).mockResolvedValue({ id: 1, nombre: 'Salón real', logo: null,
+      direccion: 'Dirección publicada', ubicacion: '21.14,-98.42' });
+    (abrirIndicaciones as jest.Mock).mockResolvedValue(undefined);
+    mockUseHomeViewModel.mockReturnValue({ ...baseState });
+    let renderer: any;
+    await act(async () => { renderer = create(<SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 24, bottom: 24, left: 0, right: 0 } }}><HomeScreen /></SafeAreaProvider>); });
+    await act(async () => { findButton(renderer, 'Ubicación').props.onPress(); });
+    expect(allText(renderer)).toContain('Dirección publicada');
+    expect(mockPush).not.toHaveBeenCalled();
+    await act(async () => { findButton(renderer, 'Cómo llegar').props.onPress(); });
+    expect(new URL((abrirIndicaciones as jest.Mock).mock.calls[0][0]).searchParams.get('destination')).toBe('21.14,-98.42');
+    expect(mockPush).not.toHaveBeenCalled();
+    const cerrar = renderer.root.findAllByType(TouchableOpacity).find((n: any) => n.props.accessibilityLabel === 'Cerrar ubicación');
+    act(() => cerrar.props.onPress());
+    expect(allText(renderer)).not.toContain('Nuestra ubicación');
     act(() => renderer.unmount());
   });
 
   it('muestra la bienvenida personalizada sin exponer tokens', () => {
     const { renderer } = renderHome({ userNombre: 'Diana' });
     const text = allText(renderer);
-    expect(text).toContain('¡Hola, Diana! ✨');
+    expect(text).toContain('¡Hola, Diana!');
+    expect(text).not.toContain('✨');
     expect(JSON.stringify(renderer.toJSON())).not.toMatch(/jwt|bearer|token/i);
     act(() => renderer.unmount());
   });
@@ -105,9 +136,9 @@ describe('HU-11 HomeScreen', () => {
     act(() => renderer.unmount());
   });
 
-  it('oculta estadisticas cuando el total es cero', () => {
+  it('presenta cero citas cuando el cliente aún no tiene reservas', () => {
     const { renderer } = renderHome();
-    expect(allText(renderer)).not.toContain('Total citas');
+    expect(allText(renderer)).toContain('Total citas');
     act(() => renderer.unmount());
   });
 
@@ -125,7 +156,8 @@ describe('HU-11 HomeScreen', () => {
     });
     const text = allText(renderer);
     expect(text).toContain('Corte editorial');
-    expect(text).toContain('Mar 10 Nov • 6:30 PM');
+    expect(text).toContain('10 de noviembre de 2026');
+    expect(text).toContain('18:30');
     expect(text).toContain('Confirmada');
     expect(text).toContain('$450.00');
     act(() => renderer.unmount());
@@ -144,11 +176,12 @@ describe('HU-11 HomeScreen', () => {
     act(() => renderer.unmount());
   });
 
-  it('presenta el estado sin proxima cita y permite agendar', () => {
+  it('presenta el estado sin próxima cita y reserva el acceso a agendar para la acción rápida', () => {
     const { renderer } = renderHome();
     expect(allText(renderer)).toContain('No tienes citas próximas');
-    act(() => findButton(renderer, 'Agendar ahora').props.onPress());
-    expect(mockPush).toHaveBeenCalledWith('/(tabs)/citas');
+    expect(findButton(renderer, 'Agendar ahora')).toBeUndefined();
+    act(() => findButton(renderer, 'Agendar').props.onPress());
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/(tabs)/citas', params: { vista: 'agendar' } });
     act(() => renderer.unmount());
   });
 
@@ -162,17 +195,15 @@ describe('HU-11 HomeScreen', () => {
     const { renderer } = renderHome();
     act(() => findButton(renderer, 'Agendar').props.onPress());
     act(() => findButton(renderer, 'Productos').props.onPress());
-    expect(mockPush).toHaveBeenNthCalledWith(1, '/(tabs)/citas');
-    expect(mockPush).toHaveBeenNthCalledWith(2, '/productos');
+    expect(mockPush).toHaveBeenNthCalledWith(1, { pathname: '/(tabs)/citas', params: { vista: 'agendar' } });
+    expect(mockPush).toHaveBeenNthCalledWith(2, { pathname: '/(tabs)/tienda', params: { seccion: 'catalogo', visita: expect.any(String) } });
     act(() => renderer.unmount());
   });
 
   it('desplaza el Home hacia la seccion Servicios', () => {
     const { renderer } = renderHome();
-    const layoutTarget = renderer.root.findAll((node: any) => typeof node.props.onLayout === 'function')[0];
-    act(() => layoutTarget.props.onLayout({ nativeEvent: { layout: { y: 240 } } }));
     act(() => findButton(renderer, 'Servicios').props.onPress());
-    expect(mockScrollTo).toHaveBeenCalledWith({ y: 220, animated: true });
+    expect(mockScrollTo).toHaveBeenCalledTimes(1);
     act(() => renderer.unmount());
   });
 });

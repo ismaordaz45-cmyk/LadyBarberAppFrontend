@@ -1,4 +1,7 @@
 import React from 'react';
+jest.mock('expo-router', () => ({ useFocusEffect: (callback: () => (() => void) | undefined) => {
+  jest.requireActual('react').useEffect(callback, [callback]);
+} }));
 import { act } from 'react-test-renderer';
 import { ResumenPerfilCliente } from '../../models/Perfil';
 import { CuentaRepository } from '../../repositories/cuentaRepository';
@@ -123,6 +126,7 @@ describe('HU-03 usePerfilViewModel', () => {
       .spyOn(PerfilRepository, 'obtenerPerfil')
       .mockReturnValue(deferred.promise);
     const { result } = testHook(() => usePerfilViewModel());
+    await act(async () => { await Promise.resolve(); });
 
     await expect(result.current.cargarPerfil()).resolves.toBe(false);
     expect(repositorySpy).toHaveBeenCalledTimes(1);

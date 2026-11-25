@@ -1,5 +1,8 @@
+import { useThemedStyles } from '../../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../../viewmodels/useAparienciaViewModel';
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { Text } from '../compartidos/TextoApp';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ServicioItem } from '../../models/Servicio';
 import { resolveServicioImagenUrl } from '../../utils/resolveServicioImagenUrl';
@@ -19,6 +22,8 @@ export const ServicioCard: React.FC<ServicioCardProps> = ({
   onDetalle,
   onAgendar,
 }) => {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   const imagenResuelta = resolveServicioImagenUrl(item.imagenUrl, API_BASE);
 
   return (
@@ -34,7 +39,7 @@ export const ServicioCard: React.FC<ServicioCardProps> = ({
         ) : (
           // Placeholder cuando no hay imagen
           <View style={styles.imagePlaceholder}>
-            <MaterialCommunityIcons name="content-cut" size={32} color="rgba(255,255,255,0.5)" />
+            <MaterialCommunityIcons name="content-cut" size={32} color={apariencia.color("rgba(255,255,255,0.5)")} />
           </View>
         )}
         {/* Badge de categoría / relevancia */}
@@ -49,7 +54,7 @@ export const ServicioCard: React.FC<ServicioCardProps> = ({
       <View style={styles.content}>
         {/* Duración */}
         <View style={styles.metaRow}>
-          <Feather name="clock" size={12} color="#64748B" style={styles.metaIcon} />
+          <Feather name="clock" size={12} color={apariencia.color("#64748B")} style={styles.metaIcon} />
           <Text style={styles.metaText}>
             {item.duracionMin > 0 ? `${item.duracionMin} min` : 'Consultar'}
           </Text>
@@ -94,7 +99,7 @@ export const ServicioCard: React.FC<ServicioCardProps> = ({
               <Ionicons
                 name="calendar-outline"
                 size={13}
-                color="#FFFFFF"
+                color={apariencia.color("#FFFFFF")}
                 style={{ marginRight: 4 }}
               />
               <Text style={styles.btnAgendarText}>Agendar</Text>
@@ -106,7 +111,7 @@ export const ServicioCard: React.FC<ServicioCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',

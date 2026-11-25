@@ -14,6 +14,14 @@ class SessionStore {
   private _userId: number | null = null;
   private _userNombre: string | null = null;
   private _userRol: string | null = null;
+  private listeners = new Set<() => void>();
+
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => { this.listeners.delete(listener); };
+  };
+
+  private notify(): void { this.listeners.forEach(listener => listener()); }
 
   private constructor() {}
 
@@ -31,6 +39,7 @@ class SessionStore {
     this._userId = userId;
     this._userNombre = nombre;
     this._userRol = rol;
+    this.notify();
   }
 
   /** Borra todos los datos de sesión (logout). */
@@ -39,6 +48,7 @@ class SessionStore {
     this._userId = null;
     this._userNombre = null;
     this._userRol = null;
+    this.notify();
   }
 
 

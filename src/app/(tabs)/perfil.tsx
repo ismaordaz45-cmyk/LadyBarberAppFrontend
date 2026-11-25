@@ -1,28 +1,33 @@
+import { useThemedStyles } from '../../hooks/use-themed-styles';
+import { useAparienciaViewModel } from '../../viewmodels/useAparienciaViewModel';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React, { useRef, useState } from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '../../components/compartidos/TextoApp';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarberActionOverlay } from '../../components/compartidos/BarberActionOverlay';
 import { EditarPerfilModal } from '../../components/perfil/EditarPerfilModal';
 import { EliminarCuentaModal } from '../../components/perfil/EliminarCuentaModal';
 import { usePerfilViewModel } from '../../viewmodels/usePerfilViewModel';
+import { PreferenciaApariencia } from '../../components/perfil/PreferenciaApariencia';
+import { Feather } from '@expo/vector-icons';
+import { ConfirmacionAccion } from '../../components/compartidos/ConfirmacionAccion';
 
 const NAVY = '#1E3A5F';
 
 export default function PerfilScreen() {
+  const apariencia = useAparienciaViewModel();
+  const styles = useThemedStyles(baseStyles);
   const router = useRouter();
   const viewModel = usePerfilViewModel();
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
+  const [confirmarSalida, setConfirmarSalida] = useState(false);
+  const saliendo = useRef(false);
 
   const onLogout = () => {
+    if (saliendo.current) return;
+    saliendo.current = true;
+    setConfirmarSalida(false);
     setShowLogoutOverlay(true);
     setTimeout(() => {
       viewModel.handleCerrarSesion();
@@ -40,7 +45,7 @@ export default function PerfilScreen() {
     if (viewModel.isLoading && !viewModel.perfil) {
       return (
         <View style={styles.centerState}>
-          <ActivityIndicator size="large" color={NAVY} />
+          <ActivityIndicator size="large" color={apariencia.color(NAVY)} />
           <Text style={styles.stateText}>Cargando tu perfil...</Text>
         </View>
       );
@@ -145,6 +150,15 @@ export default function PerfilScreen() {
           </View>
         </View>
 
+        <Text style={styles.sectionTitle}>Mis compras</Text>
+        <View style={styles.legalCard}>
+          <TouchableOpacity accessibilityRole="button" style={styles.legalButton} onPress={() => router.navigate('/(tabs)/compras')}>
+            <Feather name="shopping-bag" size={24} color={apariencia.colors.text} style={{ marginRight: 12 }} />
+            <View style={{ flex: 1, gap: 4 }}><Text style={styles.legalButtonText}>Mis compras y comprobantes</Text><Text style={styles.fieldLabel}>Productos, historial y recogidas en el salón</Text></View>
+            <Text style={styles.legalArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+        <PreferenciaApariencia />
         <Text style={styles.sectionTitle}>Información legal</Text>
         <View style={styles.legalCard}>
           <TouchableOpacity
@@ -170,7 +184,7 @@ export default function PerfilScreen() {
         <TouchableOpacity
           accessibilityRole="button"
           style={styles.logoutBtn}
-          onPress={onLogout}
+          onPress={() => { if (!saliendo.current) setConfirmarSalida(true); }}
           activeOpacity={0.8}
         >
           <Text style={styles.logoutText}>Cerrar sesión</Text>
@@ -198,7 +212,6 @@ export default function PerfilScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerSubtitle}>ESPACIO EXCLUSIVO</Text>
         <Text style={styles.title}>Mi Perfil</Text>
       </View>
 
@@ -241,11 +254,14 @@ export default function PerfilScreen() {
         message="Hasta pronto. Esperamos verte de nuevo en Lady Barber"
         isSuccess
       />
+      <ConfirmacionAccion visible={confirmarSalida} titulo="¿Quieres cerrar sesión?"
+        descripcion="Podrás volver a entrar con tu correo y contraseña. Tus citas y compras seguirán disponibles en tu cuenta."
+        confirmar="Sí, cerrar sesión" conservar="Seguir en mi cuenta" onConfirmar={onLogout} onConservar={() => setConfirmarSalida(false)} />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   legalCard: {
     backgroundColor: '#FFFFFF',
